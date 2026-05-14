@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 
 val PrimaryBlue = Color(0xFF003B7A)
 val DarkBlue = Color(0xFF002B5B)
+val AccentBlue = Color(0xFF0B63CE)
 val LightBackground = Color(0xFFF6F8FB)
 val CardWhite = Color(0xFFFFFFFF)
 val TextPrimary = Color(0xFF1F2937)

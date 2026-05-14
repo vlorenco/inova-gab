@@ -16,11 +16,15 @@ fun AppNavGraph() {
     NavHost(navController = navController, startDestination = Routes.LOGIN) {
         composable(Routes.LOGIN) {
             LoginScreen(
-                onLoginSuccess = { perfil ->
-                    val destination = when (perfil) {
+                onLoginSuccess = { role ->
+                    val destination = when (role) {
+                        "OPERADOR" -> Routes.OPERADOR_HOME
                         "GESTOR" -> Routes.GESTOR_HOME
                         "LIDERANCA" -> Routes.LIDERANCA_HOME
-                        else -> Routes.OPERADOR_HOME
+                        else -> {
+                            android.util.Log.e("AppNavGraph", "Role desconhecido recebido: '$role'")
+                            return@LoginScreen
+                        }
                     }
                     navController.navigate(destination) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
