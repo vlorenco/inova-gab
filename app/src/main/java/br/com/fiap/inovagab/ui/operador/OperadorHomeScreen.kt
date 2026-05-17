@@ -20,7 +20,7 @@ import br.com.fiap.inovagab.ui.components.AppTopBar
 import br.com.fiap.inovagab.ui.theme.*
 
 @Composable
-fun OperadorHomeScreen() {
+fun OperadorHomeScreen(onProfileClick: () -> Unit = {}) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
     Scaffold(
@@ -34,7 +34,10 @@ fun OperadorHomeScreen() {
                 ).forEachIndexed { index, (label, icon) ->
                     NavigationBarItem(
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        onClick = {
+                            selectedTab = index
+                            if (index == 3) onProfileClick()
+                        },
                         icon = { Icon(icon, contentDescription = label) },
                         label = { Text(label, fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
