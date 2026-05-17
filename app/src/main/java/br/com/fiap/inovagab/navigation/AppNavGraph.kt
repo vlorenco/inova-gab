@@ -8,6 +8,7 @@ import br.com.fiap.inovagab.ui.gestor.GestorHomeScreen
 import br.com.fiap.inovagab.ui.lideranca.LiderancaHomeScreen
 import br.com.fiap.inovagab.ui.login.LoginScreen
 import br.com.fiap.inovagab.ui.operador.OperadorHomeScreen
+import br.com.fiap.inovagab.ui.profile.ProfileScreen
 
 @Composable
 fun AppNavGraph() {
@@ -33,13 +34,28 @@ fun AppNavGraph() {
             )
         }
         composable(Routes.OPERADOR_HOME) {
-            OperadorHomeScreen()
+            OperadorHomeScreen(
+                onProfileClick = { navController.navigate(Routes.PROFILE) }
+            )
         }
         composable(Routes.GESTOR_HOME) {
-            GestorHomeScreen()
+            GestorHomeScreen(
+                onProfileClick = { navController.navigate(Routes.PROFILE) }
+            )
         }
         composable(Routes.LIDERANCA_HOME) {
-            LiderancaHomeScreen()
+            LiderancaHomeScreen(
+                onProfileClick = { navController.navigate(Routes.PROFILE) }
+            )
+        }
+        composable(Routes.PROFILE) {
+            ProfileScreen(
+                onLogout = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
