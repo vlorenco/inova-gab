@@ -1,10 +1,11 @@
-package br.com.fiap.inovagab.ui.lideranca
+package br.com.fiap.inovagab.ui.gestor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,8 +21,9 @@ import br.com.fiap.inovagab.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LeaderProjectsScreen(
-    onBackClick: () -> Unit
+fun ProjetosGestorNewScreen(
+    onBack: () -> Unit,
+    onNovoProjeto: () -> Unit
 ) {
     val repository = remember { ProjectRepository() }
     var projects by remember { mutableStateOf<List<Project>>(emptyList()) }
@@ -39,8 +41,13 @@ fun LeaderProjectsScreen(
             TopAppBar(
                 title = { Text("Projetos", color = Color.White, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNovoProjeto) {
+                        Icon(Icons.Default.Add, contentDescription = "Novo Projeto", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBlue)
@@ -51,15 +58,15 @@ fun LeaderProjectsScreen(
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             when {
                 isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PrimaryBlue)
-                errorMsg != null -> Text(errorMsg!!, color = DangerRed, fontSize = 14.sp, modifier = Modifier.align(Alignment.Center).padding(32.dp))
-                projects.isEmpty() -> Text("Nenhum projeto encontrado.", color = TextSecondary, fontSize = 14.sp, modifier = Modifier.align(Alignment.Center))
+                errorMsg != null -> Text(errorMsg!!, color = DangerRed, modifier = Modifier.align(Alignment.Center).padding(32.dp))
+                projects.isEmpty() -> Text("Nenhum projeto encontrado.", color = TextSecondary, modifier = Modifier.align(Alignment.Center))
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
                     ) {
-                        items(projects) { project -> ProjectCard(project) }
+                        items(projects) { project -> ProjectCardGestor(project) }
                     }
                 }
             }
@@ -68,7 +75,7 @@ fun LeaderProjectsScreen(
 }
 
 @Composable
-private fun ProjectCard(project: Project) {
+private fun ProjectCardGestor(project: Project) {
     val statusColor = when (project.status) {
         "PLANEJADO" -> PrimaryBlue
         "EM_ANDAMENTO" -> WarningYellow
@@ -96,46 +103,21 @@ private fun ProjectCard(project: Project) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(project.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.weight(1f))
+                Text(project.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.weight(1f))
                 Surface(shape = RoundedCornerShape(20.dp), color = statusColor.copy(alpha = 0.15f)) {
                     Text(statusLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                 }
             }
-
-            if (project.description.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(project.description, fontSize = 13.sp, color = TextSecondary)
+            Spacer(modifier = Modifier.height(8.dp))
+            if (project.currentStage.isNotBlank()) {
+                Text("Etapa: ${project.currentStage}", fontSize = 12.sp, color = TextSecondary)
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = Color(0xFFF1F5F9))
-            Spacer(modifier = Modifier.height(12.dp))
-
-            ProjectInfoRow("Etapa atual", project.currentStage)
-            ProjectInfoRow("Investimento", formatCurrency(project.investment))
-            ProjectInfoRow("Retorno financeiro", formatCurrency(project.financialReturn))
-            ProjectInfoRow("Redução de custos", formatCurrency(project.costReduction))
-            ProjectInfoRow("Ganho de produtividade", formatPercent(project.productivityGain))
-            ProjectInfoRow("Prazo", project.deadline)
+            if (project.investment > 0) {
+                Text("Investimento: R$ %,.2f".format(project.investment), fontSize = 12.sp, color = TextSecondary)
+            }
+            if (project.financialReturn > 0) {
+                Text("Retorno: R$ %,.2f".format(project.financialReturn), fontSize = 12.sp, color = TextSecondary)
+            }
         }
     }
-}
-
-@Composable
-private fun ProjectInfoRow(label: String, value: String) {
-    if (value.isBlank() || value == "R$ 0,00" || value == "0,0%") return
-    Column(modifier = Modifier.padding(bottom = 8.dp)) {
-        Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
-        Text(value, fontSize = 13.sp, color = TextPrimary)
-    }
-}
-
-private fun formatCurrency(value: Double): String {
-    if (value == 0.0) return ""
-    return "R$ %,.2f".format(value)
-}
-
-private fun formatPercent(value: Double): String {
-    if (value == 0.0) return ""
-    return "%.1f%%".format(value)
 }

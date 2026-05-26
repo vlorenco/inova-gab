@@ -6,9 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.fiap.inovagab.data.model.Project
 import br.com.fiap.inovagab.data.model.Strategy
-import br.com.fiap.inovagab.data.repository.LeaderProjectRepository
 import br.com.fiap.inovagab.data.repository.StrategyRepository
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -18,10 +16,8 @@ import java.util.Locale
 class LiderancaViewModel : ViewModel() {
 
     private val strategyRepository = StrategyRepository()
-    private val projectRepository = LeaderProjectRepository()
 
     val strategies = mutableStateListOf<Strategy>()
-    val projects = mutableStateListOf<Project>()
 
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
@@ -40,20 +36,6 @@ class LiderancaViewModel : ViewModel() {
                 .onSuccess { list ->
                     strategies.clear()
                     strategies.addAll(list)
-                }
-                .onFailure { errorMessage = it.message }
-            isLoading = false
-        }
-    }
-
-    fun loadProjects() {
-        viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
-            projectRepository.getProjects()
-                .onSuccess { list ->
-                    projects.clear()
-                    projects.addAll(list)
                 }
                 .onFailure { errorMessage = it.message }
             isLoading = false
@@ -89,17 +71,6 @@ class LiderancaViewModel : ViewModel() {
             isLoading = true
             errorMessage = null
             strategyRepository.deleteStrategy(strategyId)
-                .onSuccess { loadStrategies() }
-                .onFailure { errorMessage = it.message }
-            isLoading = false
-        }
-    }
-
-    fun updateStrategy(strategy: Strategy) {
-        viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
-            strategyRepository.updateStrategy(strategy)
                 .onSuccess { loadStrategies() }
                 .onFailure { errorMessage = it.message }
             isLoading = false

@@ -17,174 +17,177 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.fiap.inovagab.ui.components.AppActionCard
 import br.com.fiap.inovagab.ui.components.AppTopBar
-import br.com.fiap.inovagab.ui.components.MeusPontosCard
 import br.com.fiap.inovagab.ui.theme.*
 
 @Composable
-fun OperadorHomeScreen(onProfileClick: () -> Unit = {}) {
+fun OperadorHomeScreen(
+    onProfileClick: () -> Unit = {},
+    onCadastrarIdeiaClick: () -> Unit = {},
+    onMinhasIdeiasClick: () -> Unit = {},
+    onOrientacoesClick: () -> Unit = {},
+    onRankingClick: () -> Unit = {}
+) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    var mostrarRanking by remember { mutableStateOf(false) }
 
-    if (mostrarRanking) {
-        RankingScreen(onBack = { mostrarRanking = false })
-    } else {
-        Scaffold(
-            bottomBar = {
-                NavigationBar(containerColor = CardWhite, tonalElevation = 4.dp) {
-                    listOf(
-                        Pair("Início", Icons.Default.Home),
-                        Pair("Ideias", Icons.Default.Lightbulb),
-                        Pair("Estratégias", Icons.Default.Flag),
-                        Pair("Perfil", Icons.Default.Person)
-                    ).forEachIndexed { index, (label, icon) ->
-                        NavigationBarItem(
-                            selected = selectedTab == index,
-                            onClick = {
-                                selectedTab = index
-                                if (index == 3) onProfileClick()
-                            },
-                            icon = { Icon(icon, contentDescription = label) },
-                            label = { Text(label, fontSize = 11.sp) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = PrimaryBlue,
-                                selectedTextColor = PrimaryBlue,
-                                indicatorColor = LightBackground
-                            )
+    Scaffold(
+        bottomBar = {
+            NavigationBar(containerColor = CardWhite, tonalElevation = 4.dp) {
+                listOf(
+                    Pair("Início", Icons.Default.Home),
+                    Pair("Ideias", Icons.Default.Lightbulb),
+                    Pair("Estratégias", Icons.Default.Flag),
+                    Pair("Perfil", Icons.Default.Person)
+                ).forEachIndexed { index, (label, icon) ->
+                    NavigationBarItem(
+                        selected = selectedTab == index,
+                        onClick = {
+                            selectedTab = index
+                            when (index) {
+                                1 -> onMinhasIdeiasClick()
+                                2 -> onOrientacoesClick()
+                                3 -> onProfileClick()
+                            }
+                        },
+                        icon = { Icon(icon, contentDescription = label) },
+                        label = { Text(label, fontSize = 11.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = PrimaryBlue,
+                            selectedTextColor = PrimaryBlue,
+                            indicatorColor = LightBackground
                         )
-                    }
+                    )
                 }
             }
-        ) { innerPadding ->
-            Column(
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(LightBackground)
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+        ) {
+            AppTopBar(title = "Olá, Operador", subtitle = "Vamos inovar hoje?")
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Card principal — Orientações estratégicas
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(LightBackground)
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = CardWhite),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
             ) {
-                AppTopBar(title = "Olá, Operador", subtitle = "Vamos inovar hoje?")
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                MeusPontosCard(
-                    operadorId = "ID_DO_USUARIO_LOGADO", // Substituir pelo ID real
-                    onVerRanking = { mostrarRanking = true }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardWhite),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Flag,
-                            contentDescription = null,
-                            tint = PrimaryBlue,
-                            modifier = Modifier.size(36.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "Orientações estratégicas",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "3 novas diretrizes disponíveis",
-                                fontSize = 13.sp,
-                                color = TextSecondary
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "Ações rápidas",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Column(
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        AppActionCard(
-                            icon = Icons.Default.Add,
-                            title = "Cadastrar nova ideia",
-                            subtitle = "Submeta sua inovação",
-                            modifier = Modifier.weight(1f)
-                        )
-                        AppActionCard(
-                            icon = Icons.Default.Lightbulb,
-                            title = "Minhas ideias",
-                            subtitle = "Acompanhe o status",
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        AppActionCard(
-                            icon = Icons.Default.Flag,
-                            title = "Orientações estratégicas",
-                            subtitle = "Diretrizes do grupo",
-                            modifier = Modifier.weight(1f)
-                        )
-                        AppActionCard(
-                            icon = Icons.Default.EmojiEvents,
-                            title = "Ranking de inovadores",
-                            subtitle = "Veja sua posição",
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = PrimaryBlue)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
+                    Icon(
+                        imageVector = Icons.Default.Flag,
+                        contentDescription = null,
+                        tint = PrimaryBlue,
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "Orientações estratégicas",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
                         )
                         Text(
-                            text = "Sua ideia pode transformar o futuro da Águia Branca!",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
+                            text = "Confira as diretrizes disponíveis",
+                            fontSize = 13.sp,
+                            color = TextSecondary
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Ações rápidas",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AppActionCard(
+                        icon = Icons.Default.Add,
+                        title = "Cadastrar nova ideia",
+                        subtitle = "Submeta sua inovação",
+                        modifier = Modifier.weight(1f),
+                        onClick = onCadastrarIdeiaClick
+                    )
+                    AppActionCard(
+                        icon = Icons.Default.Lightbulb,
+                        title = "Minhas ideias",
+                        subtitle = "Acompanhe o status",
+                        modifier = Modifier.weight(1f),
+                        onClick = onMinhasIdeiasClick
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AppActionCard(
+                        icon = Icons.Default.Flag,
+                        title = "Orientações estratégicas",
+                        subtitle = "Diretrizes do grupo",
+                        modifier = Modifier.weight(1f),
+                        onClick = onOrientacoesClick
+                    )
+                    AppActionCard(
+                        icon = Icons.Default.EmojiEvents,
+                        title = "Ranking de inovadores",
+                        subtitle = "Veja sua posição",
+                        modifier = Modifier.weight(1f),
+                        onClick = onRankingClick
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Card motivacional
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = PrimaryBlue)
+            ) {
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Text(
+                        text = "Sua ideia pode transformar o futuro da Águia Branca!",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

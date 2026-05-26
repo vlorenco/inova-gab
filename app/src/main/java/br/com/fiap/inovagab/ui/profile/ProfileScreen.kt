@@ -2,8 +2,10 @@ package br.com.fiap.inovagab.ui.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Logout
@@ -20,9 +22,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.com.fiap.inovagab.data.repository.DemoDataRepository
 import br.com.fiap.inovagab.ui.theme.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @Composable
@@ -33,6 +37,11 @@ fun ProfileScreen(onLogout: () -> Unit) {
     var name by remember { mutableStateOf("Usuário InovaGAB") }
     var role by remember { mutableStateOf("") }
     var showDialog by remember { mutableStateOf(false) }
+
+    // Demo data
+    val coroutineScope = rememberCoroutineScope()
+    var demoLoading by remember { mutableStateOf(false) }
+    var demoMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(currentUser?.uid) {
         currentUser?.uid?.let { uid ->
@@ -73,6 +82,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(LightBackground)
+            .verticalScroll(rememberScrollState())
     ) {
         // Header azul
         Box(
@@ -165,7 +175,63 @@ fun ProfileScreen(onLogout: () -> Unit) {
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Botão popular dados de demonstração
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = CardWhite),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Dados de demonstração",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextSecondary
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            demoLoading = true
+                            demoMessage = null
+                            DemoDataRepository().seedDemoDataIfNeeded()
+                                .onSuccess { demoMessage = it }
+                                .onFailure { demoMessage = "Erro: ${it.message}" }
+                            demoLoading = false
+                        }
+                    },
+                    enabled = !demoLoading,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
+                ) {
+                    if (demoLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Popular dados de demonstração", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                if (demoMessage != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = demoMessage!!,
+                        fontSize = 12.sp,
+                        color = if (demoMessage!!.startsWith("Erro")) DangerRed else SuccessGreen
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Botão sair
         OutlinedButton(
@@ -182,6 +248,8 @@ fun ProfileScreen(onLogout: () -> Unit) {
             Spacer(modifier = Modifier.width(8.dp))
             Text("Sair da conta", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
