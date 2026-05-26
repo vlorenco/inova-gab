@@ -20,7 +20,12 @@ import br.com.fiap.inovagab.ui.components.AppTopBar
 import br.com.fiap.inovagab.ui.theme.*
 
 @Composable
-fun LiderancaHomeScreen(onProfileClick: () -> Unit = {}) {
+fun LiderancaHomeScreen(
+    onProfileClick: () -> Unit = {},
+    onStrategiesClick: () -> Unit = {},
+    onDashboardClick: () -> Unit = {},
+    onProjectsClick: () -> Unit = {}
+) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
     Scaffold(
@@ -36,7 +41,11 @@ fun LiderancaHomeScreen(onProfileClick: () -> Unit = {}) {
                         selected = selectedTab == index,
                         onClick = {
                             selectedTab = index
-                            if (index == 3) onProfileClick()
+                            when (index) {
+                                1 -> onStrategiesClick()
+                                2 -> onProjectsClick()
+                                3 -> onProfileClick()
+                            }
                         },
                         icon = { Icon(icon, contentDescription = label) },
                         label = { Text(label, fontSize = 11.sp) },
@@ -71,7 +80,6 @@ fun LiderancaHomeScreen(onProfileClick: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Grid 2x2 de resumo
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -127,13 +135,15 @@ fun LiderancaHomeScreen(onProfileClick: () -> Unit = {}) {
                         icon = Icons.Default.Dashboard,
                         title = "Dashboard",
                         subtitle = "Visão consolidada",
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = onDashboardClick
                     )
                     AppActionCard(
                         icon = Icons.Default.Flag,
                         title = "Estratégias",
                         subtitle = "Gerencie diretrizes",
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = onStrategiesClick
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -141,7 +151,8 @@ fun LiderancaHomeScreen(onProfileClick: () -> Unit = {}) {
                         icon = Icons.Default.AccountTree,
                         title = "Projetos",
                         subtitle = "Acompanhe projetos",
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = onProjectsClick
                     )
                     AppActionCard(
                         icon = Icons.Default.BarChart,
