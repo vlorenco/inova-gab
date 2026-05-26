@@ -1,5 +1,6 @@
 package br.com.fiap.inovagab.ui.operador
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 import br.com.fiap.inovagab.data.model.Operador
 import br.com.fiap.inovagab.data.repositoryfirestore.RankingService
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RankingScreen(onBack: () -> Unit) {
     val rankingService = remember { RankingService() }
