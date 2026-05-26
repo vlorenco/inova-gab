@@ -25,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,6 +43,8 @@ import br.com.fiap.inovagab.ui.theme.SuccessGreen
 import br.com.fiap.inovagab.ui.theme.TextPrimary
 import br.com.fiap.inovagab.ui.theme.TextSecondary
 import br.com.fiap.inovagab.ui.theme.WarningYellow
+import br.com.fiap.inovagab.data.repositoryfirestore.RankingService
+import kotlinx.coroutines.launch
 
 @Composable
 fun IdeiasGestorScreen(
@@ -49,6 +52,9 @@ fun IdeiasGestorScreen(
     modifier: Modifier = Modifier,
     onAprovarECriarProjeto: (Ideia) -> Unit = {}
 ) {
+    val rankingService = remember { RankingService() }
+    val coroutineScope = rememberCoroutineScope()
+    
     LaunchedEffect(Unit) {
         viewModel.carregarIdeiasPendentes()
     }
@@ -101,9 +107,22 @@ fun IdeiasGestorScreen(
                         items(viewModel.ideiasPendentes) { ideia ->
                             IdeiaGestorCard(
                                 ideia = ideia,
-                                onAprovar = { viewModel.aprovarIdeia(ideia.id) },
+                                operadorId = ideia.operadorId,
+                                rankingService = rankingService,
+                                coroutineScope = coroutineScope,
+                                onAprovar = { 
+                                    viewModel.aprovarIdeia(ideia.id)
+                                    coroutineScope.launch {
+                                        rankingService.adicionarPontos(ideia.operadorId, 50)
+                                    }
+                                },
                                 onReprovar = { viewModel.reprovarIdeia(ideia.id) },
-                                onAprovarECriarProjeto = { onAprovarECriarProjeto(ideia) }
+                                onAprovarECriarProjeto = { 
+                                    onAprovarECriarProjeto(ideia)
+                                    coroutineScope.launch {
+                                        rankingService.adicionarPontos(ideia.operadorId, 100)
+                                    }
+                                }
                             )
                         }
                     }
@@ -116,6 +135,9 @@ fun IdeiasGestorScreen(
 @Composable
 private fun IdeiaGestorCard(
     ideia: Ideia,
+    operadorId: String,
+    rankingService: RankingService,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
     onAprovar: () -> Unit,
     onReprovar: () -> Unit,
     onAprovarECriarProjeto: () -> Unit
@@ -167,7 +189,6 @@ private fun IdeiaGestorCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Linha 1: Reprovar | Aprovar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -196,7 +217,6 @@ private fun IdeiaGestorCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Linha 2: Aprovar e criar projeto
             Button(
                 onClick = onAprovarECriarProjeto,
                 modifier = Modifier.fillMaxWidth(),

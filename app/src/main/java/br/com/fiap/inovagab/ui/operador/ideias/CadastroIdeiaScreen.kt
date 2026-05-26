@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,6 +38,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import br.com.fiap.inovagab.ui.operador.model.Ideia
 import br.com.fiap.inovagab.ui.viewmodeloperador.IdeiasViewModel
+import br.com.fiap.inovagab.data.repositoryfirestore.RankingService
+import kotlinx.coroutines.launch
 
 @Composable
 fun CadastroIdeiaScreen(
@@ -57,16 +60,14 @@ fun CadastroIdeiaContent(
 ) {
 
     var titulo by remember { mutableStateOf("") }
-
     var problema by remember { mutableStateOf("") }
-
     var solucao by remember { mutableStateOf("") }
-
     var area by remember { mutableStateOf("") }
-
     var beneficio by remember { mutableStateOf("") }
-
     var categoria by remember { mutableStateOf("") }
+
+    val rankingService = remember { RankingService() }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
 
@@ -114,6 +115,8 @@ fun CadastroIdeiaContent(
 
                     onClick = {
 
+                        val operadorId = "ID_DO_OPERADOR_LOGADO"
+
                         val novaIdeia = Ideia(
                             titulo = titulo,
                             problema = problema,
@@ -121,10 +124,15 @@ fun CadastroIdeiaContent(
                             area = area,
                             beneficio = beneficio,
                             categoria = categoria,
-                            status = "Em análise"
+                            status = "Em análise",
+                            operadorId = operadorId
                         )
 
                         onSalvarIdeia(novaIdeia)
+                        
+                        coroutineScope.launch {
+                            rankingService.adicionarPontos(operadorId, 10)
+                        }
                     },
 
                     modifier = Modifier
