@@ -5,7 +5,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import br.com.fiap.inovagab.ui.gestor.GestorHomeScreen
+import br.com.fiap.inovagab.ui.lideranca.DashboardScreen
+import br.com.fiap.inovagab.ui.lideranca.LeaderProjectsScreen
 import br.com.fiap.inovagab.ui.lideranca.LiderancaHomeScreen
+import br.com.fiap.inovagab.ui.lideranca.StrategiesScreen
 import br.com.fiap.inovagab.ui.login.LoginScreen
 import br.com.fiap.inovagab.ui.operador.OperadorHomeScreen
 import br.com.fiap.inovagab.ui.profile.ProfileScreen
@@ -45,7 +48,25 @@ fun AppNavGraph() {
         }
         composable(Routes.LIDERANCA_HOME) {
             LiderancaHomeScreen(
-                onProfileClick = { navController.navigate(Routes.PROFILE) }
+                onProfileClick = { navController.navigate(Routes.PROFILE) },
+                onStrategiesClick = { navController.navigate(Routes.LIDERANCA_STRATEGIES) },
+                onDashboardClick = { navController.navigate(Routes.LIDERANCA_DASHBOARD) },
+                onProjectsClick = { navController.navigate(Routes.LIDERANCA_PROJECTS) }
+            )
+        }
+        composable(Routes.LIDERANCA_STRATEGIES) {
+            StrategiesScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(Routes.LIDERANCA_DASHBOARD) {
+            DashboardScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(Routes.LIDERANCA_PROJECTS) {
+            LeaderProjectsScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
         composable(Routes.PROFILE) {
