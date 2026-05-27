@@ -7,6 +7,19 @@ object Routes {
     const val LIDERANCA_HOME = "lideranca_home"
     const val PROFILE = "profile"
 
+    // Fluxo Operador
+    const val OPERADOR_CADASTRAR_IDEIA = "operador_cadastrar_ideia"
+    const val OPERADOR_MINHAS_IDEIAS = "operador_minhas_ideias"
+    const val OPERADOR_ORIENTACOES = "operador_orientacoes"
+    const val OPERADOR_RANKING = "operador_ranking"
+
+    // Fluxo Gestor
+    const val GESTOR_IDEIAS = "gestor_ideias"
+    const val GESTOR_DETALHE_IDEIA = "gestor_detalhe_ideia/{ideaId}"
+    const val GESTOR_PROJETOS = "gestor_projetos"
+    const val GESTOR_NOVO_PROJETO = "gestor_novo_projeto"
+    const val GESTOR_NOVO_PROJETO_IDEIA = "gestor_novo_projeto/{ideaId}"
+
     // Fluxo Liderança
     const val LIDERANCA_STRATEGIES = "lideranca_strategies"
     const val LIDERANCA_DASHBOARD = "lideranca_dashboard"
