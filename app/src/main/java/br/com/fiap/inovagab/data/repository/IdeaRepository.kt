@@ -1,48 +1,81 @@
 package br.com.fiap.inovagab.data.repository
 
+import br.com.fiap.inovagab.data.model.AiAnalysis
 import br.com.fiap.inovagab.data.model.Idea
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
-import kotlinx.coroutines.tasks.await
+import br.com.fiap.inovagab.data.remote.ApiClient
+import br.com.fiap.inovagab.data.remote.api.IdeaApi
+import br.com.fiap.inovagab.data.remote.apiCall
+import br.com.fiap.inovagab.data.remote.dto.IdeaPriorityRequestDto
+import br.com.fiap.inovagab.data.remote.dto.IdeaRequestDto
+import br.com.fiap.inovagab.data.remote.dto.IdeaStatusRequestDto
+import br.com.fiap.inovagab.data.remote.dto.toDomain
 
-class IdeaRepository {
+class IdeaRepository(
+    private val api: IdeaApi = ApiClient.ideaApi
+) {
 
-    private val db = FirebaseFirestore.getInstance()
-    private val collection = db.collection("ideas")
-
-    suspend fun createIdea(idea: Idea): Result<String> = runCatching {
-        val doc = collection.add(idea).await()
-        doc.id
+    /** O backend define operatorId/operatorName a partir do JWT. */
+    suspend fun createIdea(
+        title: String,
+        problem: String,
+        solution: String,
+        area: String,
+        benefit: String,
+        strategyId: String?
+    ): Result<Idea> = apiCall {
+        api.create(
+            IdeaRequestDto(
+                title = title,
+                problem = problem,
+                solution = solution,
+                area = area.ifBlank { null },
+                benefit = benefit.ifBlank { null },
+                strategyId = strategyId?.ifBlank { null }
+            )
+        ).toDomain()
     }
 
-    suspend fun getAllIdeas(): Result<List<Idea>> = runCatching {
-        collection.orderBy("createdAt", Query.Direction.DESCENDING)
-            .get().await().documents.mapNotNull {
-                it.toObject(Idea::class.java)?.copy(id = it.id)
-            }
+    suspend fun getMyIdeas(): Result<List<Idea>> =
+        apiCall { api.myIdeas().map { it.toDomain() } }
+
+    suspend fun getAllIdeas(status: String? = null): Result<List<Idea>> =
+        apiCall { api.listAll(status).map { it.toDomain() } }
+
+    suspend fun getIdea(ideaId: String): Result<Idea> =
+        apiCall { api.getById(ideaId).toDomain() }
+
+    suspend fun updateIdea(
+        ideaId: String,
+        title: String,
+        problem: String,
+        solution: String,
+        area: String,
+        benefit: String,
+        strategyId: String?
+    ): Result<Idea> = apiCall {
+        api.update(
+            ideaId,
+            IdeaRequestDto(
+                title = title,
+                problem = problem,
+                solution = solution,
+                area = area.ifBlank { null },
+                benefit = benefit.ifBlank { null },
+                strategyId = strategyId?.ifBlank { null }
+            )
+        ).toDomain()
     }
 
-    suspend fun getIdeasByOperator(operatorId: String): Result<List<Idea>> = runCatching {
-        collection.whereEqualTo("operatorId", operatorId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .get().await().documents.mapNotNull {
-                it.toObject(Idea::class.java)?.copy(id = it.id)
-            }
-    }
+    suspend fun deleteIdea(ideaId: String): Result<Unit> =
+        apiCall { api.delete(ideaId) }
 
-    suspend fun updateIdeaStatus(ideaId: String, status: String): Result<Unit> = runCatching {
-        val updates = mutableMapOf<String, Any>("status" to status)
-        if (status == "APROVADA") {
-            updates["approvedAt"] = System.currentTimeMillis()
-        }
-        collection.document(ideaId).update(updates).await()
-    }
+    suspend fun updateIdeaPriority(ideaId: String, priority: String): Result<Idea> =
+        apiCall { api.updatePriority(ideaId, IdeaPriorityRequestDto(priority)).toDomain() }
 
-    suspend fun updateIdeaPriority(ideaId: String, priority: String): Result<Unit> = runCatching {
-        collection.document(ideaId).update("priority", priority).await()
-    }
+    suspend fun updateIdeaStatus(ideaId: String, status: String): Result<Idea> =
+        apiCall { api.updateStatus(ideaId, IdeaStatusRequestDto(status)).toDomain() }
 
-    suspend fun markConvertedToProject(ideaId: String): Result<Unit> = runCatching {
-        collection.document(ideaId).update("convertedToProject", true).await()
-    }
+    /** Dispara a analise da ideia pelo Gemini (o backend fala com a IA). */
+    suspend fun requestAiAnalysis(ideaId: String): Result<AiAnalysis> =
+        apiCall { api.aiAnalysis(ideaId).toDomain() }
 }

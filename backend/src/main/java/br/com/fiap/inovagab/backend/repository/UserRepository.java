@@ -1,0 +1,17 @@
+package br.com.fiap.inovagab.backend.repository;
+
+import br.com.fiap.inovagab.backend.model.Role;
+import br.com.fiap.inovagab.backend.model.User;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface UserRepository extends MongoRepository<User, String> {
+
+    Optional<User> findByEmailIgnoreCase(String email);
+
+    boolean existsByEmailIgnoreCase(String email);
+
+    List<User> findByRoleOrderByPointsDesc(Role role);
+}

@@ -13,10 +13,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import br.com.fiap.inovagab.data.model.Idea
+import br.com.fiap.inovagab.data.model.Strategy
 import br.com.fiap.inovagab.data.repository.IdeaRepository
+import br.com.fiap.inovagab.data.repository.StrategyRepository
 import br.com.fiap.inovagab.ui.theme.*
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,14 +27,22 @@ fun CadastroIdeiaNewScreen(onBack: () -> Unit) {
     var solucao by remember { mutableStateOf("") }
     var area by remember { mutableStateOf("") }
     var beneficio by remember { mutableStateOf("") }
+    var estrategia by remember { mutableStateOf<Strategy?>(null) }
 
+    var estrategias by remember { mutableStateOf<List<Strategy>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var isError by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
     val repository = remember { IdeaRepository() }
-    val currentUser = FirebaseAuth.getInstance().currentUser
+    val strategyRepository = remember { StrategyRepository() }
+
+    // Só orientações vigentes podem ser vinculadas a uma nova ideia.
+    LaunchedEffect(Unit) {
+        strategyRepository.getStrategies(activeOnly = true)
+            .onSuccess { estrategias = it }
+    }
 
     Scaffold(
         topBar = {
@@ -64,6 +72,12 @@ fun CadastroIdeiaNewScreen(onBack: () -> Unit) {
             FormField("Área impactada", area, { area = it })
             FormField("Benefício esperado", beneficio, { beneficio = it }, minLines = 2)
 
+            StrategyPicker(
+                strategies = estrategias,
+                selected = estrategia,
+                onSelect = { estrategia = it }
+            )
+
             if (message != null) {
                 Text(
                     text = message!!,
@@ -83,25 +97,22 @@ fun CadastroIdeiaNewScreen(onBack: () -> Unit) {
                     coroutineScope.launch {
                         isLoading = true
                         message = null
-                        val idea = Idea(
+                        repository.createIdea(
                             title = titulo.trim(),
                             problem = problema.trim(),
                             solution = solucao.trim(),
                             area = area.trim(),
                             benefit = beneficio.trim(),
-                            status = "EM_ANALISE",
-                            priority = "NORMAL",
-                            operatorId = currentUser?.uid ?: "",
-                            operatorName = currentUser?.email?.substringBefore("@") ?: "Operador"
+                            strategyId = estrategia?.id
                         )
-                        repository.createIdea(idea)
                             .onSuccess {
-                                message = "Ideia cadastrada com sucesso!"
+                                message = "Ideia cadastrada com sucesso! Você ganhou 10 pontos."
                                 isError = false
                                 titulo = ""; problema = ""; solucao = ""; area = ""; beneficio = ""
+                                estrategia = null
                             }
                             .onFailure {
-                                message = "Erro ao salvar: ${it.message}"
+                                message = it.message ?: "Erro ao salvar a ideia."
                                 isError = true
                             }
                         isLoading = false
@@ -120,6 +131,58 @@ fun CadastroIdeiaNewScreen(onBack: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StrategyPicker(
+    strategies: List<Strategy>,
+    selected: Strategy?,
+    onSelect: (Strategy?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Text(
+            "Orientação estratégica (opcional)",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextPrimary
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selected?.title ?: "Nenhuma",
+                onValueChange = {},
+                readOnly = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PrimaryBlue,
+                    unfocusedBorderColor = Color(0xFFE2E8F0)
+                )
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenuItem(
+                    text = { Text("Nenhuma") },
+                    onClick = { onSelect(null); expanded = false }
+                )
+                strategies.forEach { strategy ->
+                    DropdownMenuItem(
+                        text = { Text(strategy.title, fontSize = 13.sp) },
+                        onClick = { onSelect(strategy); expanded = false }
+                    )
+                }
+            }
         }
     }
 }

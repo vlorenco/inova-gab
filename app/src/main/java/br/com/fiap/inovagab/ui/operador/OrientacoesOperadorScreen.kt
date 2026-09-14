@@ -26,9 +26,10 @@ fun OrientacoesOperadorScreen(onBack: () -> Unit) {
     var isLoading by remember { mutableStateOf(true) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
+    // O backend já devolve apenas as orientações vigentes com activeOnly=true.
     LaunchedEffect(Unit) {
-        repository.getStrategies()
-            .onSuccess { strategies = it.filter { s -> s.isActive }; isLoading = false }
+        repository.getStrategies(activeOnly = true)
+            .onSuccess { strategies = it; isLoading = false }
             .onFailure { errorMsg = it.message; isLoading = false }
     }
 
@@ -49,8 +50,16 @@ fun OrientacoesOperadorScreen(onBack: () -> Unit) {
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             when {
                 isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PrimaryBlue)
-                errorMsg != null -> Text(errorMsg!!, color = DangerRed, modifier = Modifier.align(Alignment.Center).padding(32.dp))
-                strategies.isEmpty() -> Text("Nenhuma orientação estratégica disponível.", color = TextSecondary, modifier = Modifier.align(Alignment.Center))
+                errorMsg != null -> Text(
+                    errorMsg!!,
+                    color = DangerRed,
+                    modifier = Modifier.align(Alignment.Center).padding(32.dp)
+                )
+                strategies.isEmpty() -> Text(
+                    "Nenhuma orientação estratégica disponível.",
+                    color = TextSecondary,
+                    modifier = Modifier.align(Alignment.Center)
+                )
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -65,10 +74,26 @@ fun OrientacoesOperadorScreen(onBack: () -> Unit) {
                                 elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(strategy.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                    Text(
+                                        strategy.title,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
+                                    )
                                     if (strategy.description.isNotBlank()) {
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(strategy.description, fontSize = 13.sp, color = TextSecondary)
+                                    }
+                                    if (strategy.category.isNotBlank() || strategy.campaign.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            if (strategy.category.isNotBlank()) {
+                                                Tag(strategy.category, AccentBlue)
+                                            }
+                                            if (strategy.campaign.isNotBlank()) {
+                                                Tag(strategy.campaign, PrimaryBlue)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -77,5 +102,18 @@ fun OrientacoesOperadorScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun Tag(text: String, color: Color) {
+    Surface(shape = RoundedCornerShape(20.dp), color = color.copy(alpha = 0.12f)) {
+        Text(
+            text,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = color,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+        )
     }
 }

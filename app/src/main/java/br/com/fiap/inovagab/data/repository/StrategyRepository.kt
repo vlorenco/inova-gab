@@ -1,30 +1,29 @@
 package br.com.fiap.inovagab.data.repository
 
 import br.com.fiap.inovagab.data.model.Strategy
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
+import br.com.fiap.inovagab.data.model.StrategyHistoryEntry
+import br.com.fiap.inovagab.data.remote.ApiClient
+import br.com.fiap.inovagab.data.remote.api.StrategyApi
+import br.com.fiap.inovagab.data.remote.apiCall
+import br.com.fiap.inovagab.data.remote.dto.toDomain
+import br.com.fiap.inovagab.data.remote.dto.toRequest
 
-class StrategyRepository {
+class StrategyRepository(
+    private val api: StrategyApi = ApiClient.strategyApi
+) {
 
-    private val db = FirebaseFirestore.getInstance()
-    private val collection = db.collection("strategies")
+    suspend fun getStrategies(activeOnly: Boolean? = null): Result<List<Strategy>> =
+        apiCall { api.list(activeOnly).map { it.toDomain() } }
 
-    suspend fun getStrategies(): Result<List<Strategy>> = runCatching {
-        collection.get().await().documents.mapNotNull {
-            it.toObject(Strategy::class.java)?.copy(id = it.id)
-        }
-    }
+    suspend fun createStrategy(strategy: Strategy): Result<Strategy> =
+        apiCall { api.create(strategy.toRequest()).toDomain() }
 
-    suspend fun createStrategy(strategy: Strategy): Result<String> = runCatching {
-        val doc = collection.add(strategy).await()
-        doc.id
-    }
+    suspend fun updateStrategy(strategy: Strategy): Result<Strategy> =
+        apiCall { api.update(strategy.id, strategy.toRequest()).toDomain() }
 
-    suspend fun deleteStrategy(strategyId: String): Result<Unit> = runCatching {
-        collection.document(strategyId).delete().await()
-    }
+    suspend fun deleteStrategy(strategyId: String): Result<Unit> =
+        apiCall { api.delete(strategyId) }
 
-    suspend fun updateStrategy(strategy: Strategy): Result<Unit> = runCatching {
-        collection.document(strategy.id).set(strategy).await()
-    }
+    suspend fun getHistory(strategyId: String): Result<List<StrategyHistoryEntry>> =
+        apiCall { api.history(strategyId).map { it.toDomain() } }
 }

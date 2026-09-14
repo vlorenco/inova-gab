@@ -48,15 +48,14 @@ class LoginViewModel(
                     _navigateTo.emit(roleNormalizado)
                 },
                 onFailure = { error ->
-                    val message = when {
-                        error.message?.contains("password") == true ||
-                        error.message?.contains("credential") == true ->
-                            "E-mail ou senha incorretos."
-                        error.message?.contains("network") == true ->
-                            "Sem conexão. Verifique sua internet."
-                        else -> error.message ?: "Erro ao fazer login."
+                    // O backend já devolve mensagens prontas para o usuário
+                    // (401 -> "E-mail ou senha incorretos.", falha de rede -> instrução de conexão).
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "Erro ao fazer login."
+                        )
                     }
-                    _uiState.update { it.copy(isLoading = false, errorMessage = message) }
                 }
             )
         }

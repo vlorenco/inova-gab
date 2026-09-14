@@ -18,6 +18,7 @@ import br.com.fiap.inovagab.data.model.Project
 import br.com.fiap.inovagab.data.repository.ProjectRepository
 import br.com.fiap.inovagab.ui.theme.*
 
+/** A liderança apenas acompanha o andamento: o CRUD é do gestor. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaderProjectsScreen(
@@ -50,17 +51,28 @@ fun LeaderProjectsScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             when {
-                isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PrimaryBlue)
-                errorMsg != null -> Text(errorMsg!!, color = DangerRed, fontSize = 14.sp, modifier = Modifier.align(Alignment.Center).padding(32.dp))
-                projects.isEmpty() -> Text("Nenhum projeto encontrado.", color = TextSecondary, fontSize = 14.sp, modifier = Modifier.align(Alignment.Center))
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
-                    ) {
-                        items(projects) { project -> ProjectCard(project) }
-                    }
+                isLoading -> CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = PrimaryBlue
+                )
+                errorMsg != null -> Text(
+                    errorMsg!!,
+                    color = DangerRed,
+                    fontSize = 14.sp,
+                    modifier = Modifier.align(Alignment.Center).padding(32.dp)
+                )
+                projects.isEmpty() -> Text(
+                    "Nenhum projeto encontrado.",
+                    color = TextSecondary,
+                    fontSize = 14.sp,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
+                ) {
+                    items(projects) { project -> ProjectCard(project) }
                 }
             }
         }
@@ -96,9 +108,21 @@ private fun ProjectCard(project: Project) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(project.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.weight(1f))
+                Text(
+                    project.name,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
                 Surface(shape = RoundedCornerShape(20.dp), color = statusColor.copy(alpha = 0.15f)) {
-                    Text(statusLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                    Text(
+                        statusLabel,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = statusColor,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
                 }
             }
 
@@ -111,11 +135,16 @@ private fun ProjectCard(project: Project) {
             HorizontalDivider(color = Color(0xFFF1F5F9))
             Spacer(modifier = Modifier.height(12.dp))
 
+            ProjectInfoRow("Orientação estratégica", project.strategyTitle)
+            ProjectInfoRow("Responsável", project.responsible)
             ProjectInfoRow("Etapa atual", project.currentStage)
             ProjectInfoRow("Investimento", formatCurrency(project.investment))
             ProjectInfoRow("Retorno financeiro", formatCurrency(project.financialReturn))
             ProjectInfoRow("Redução de custos", formatCurrency(project.costReduction))
             ProjectInfoRow("Ganho de produtividade", formatPercent(project.productivityGain))
+            if (project.investment > 0) {
+                ProjectInfoRow("ROI (calculado pela API)", "%.1f%%".format(project.roi))
+            }
             ProjectInfoRow("Prazo", project.deadline)
         }
     }
@@ -123,7 +152,7 @@ private fun ProjectCard(project: Project) {
 
 @Composable
 private fun ProjectInfoRow(label: String, value: String) {
-    if (value.isBlank() || value == "R$ 0,00" || value == "0,0%") return
+    if (value.isBlank()) return
     Column(modifier = Modifier.padding(bottom = 8.dp)) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
         Text(value, fontSize = 13.sp, color = TextPrimary)

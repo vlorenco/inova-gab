@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
@@ -22,40 +23,34 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import br.com.fiap.inovagab.data.repository.DemoDataRepository
+import br.com.fiap.inovagab.data.model.User
+import br.com.fiap.inovagab.data.repository.AuthRepository
 import br.com.fiap.inovagab.ui.theme.*
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
+/**
+ * Perfil do usuário autenticado.
+ * Antes: Firebase Auth + Firestore. Agora: GET /api/auth/me.
+ */
 @Composable
 fun ProfileScreen(onLogout: () -> Unit) {
-    val auth = FirebaseAuth.getInstance()
-    val currentUser = auth.currentUser
+    val repository = remember { AuthRepository() }
+    val coroutineScope = rememberCoroutineScope()
 
-    var name by remember { mutableStateOf("Usuário InovaGAB") }
-    var role by remember { mutableStateOf("") }
+    var user by remember { mutableStateOf<User?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
     var showDialog by remember { mutableStateOf(false) }
 
-    // Demo data
-    val coroutineScope = rememberCoroutineScope()
-    var demoLoading by remember { mutableStateOf(false) }
-    var demoMessage by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(currentUser?.uid) {
-        currentUser?.uid?.let { uid ->
-            try {
-                val doc = FirebaseFirestore.getInstance()
-                    .collection("users").document(uid).get().await()
-                name = doc.getString("name")?.ifBlank { null }
-                    ?: currentUser.email?.substringBefore("@") ?: "Usuário InovaGAB"
-                role = doc.getString("role") ?: ""
-            } catch (_: Exception) {
-                name = currentUser.email?.substringBefore("@") ?: "Usuário InovaGAB"
-            }
-        }
+    LaunchedEffect(Unit) {
+        repository.currentUser()
+            .onSuccess { user = it }
+            .onFailure { errorMsg = it.message }
+        isLoading = false
     }
+
+    val name = user?.name?.ifBlank { null } ?: "Usuário InovaGAB"
+    val role = user?.role.orEmpty()
 
     if (showDialog) {
         AlertDialog(
@@ -64,8 +59,12 @@ fun ProfileScreen(onLogout: () -> Unit) {
             text = { Text("Tem certeza que deseja sair da sua conta?") },
             confirmButton = {
                 TextButton(onClick = {
-                    auth.signOut()
-                    onLogout()
+                    coroutineScope.launch {
+                        // Logout no app = apagar o JWT local.
+                        repository.logout()
+                        showDialog = false
+                        onLogout()
+                    }
                 }) {
                     Text("Sair", color = DangerRed, fontWeight = FontWeight.Bold)
                 }
@@ -84,7 +83,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
             .background(LightBackground)
             .verticalScroll(rememberScrollState())
     ) {
-        // Header azul
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -121,18 +119,10 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = name,
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 if (role.isNotBlank()) {
                     Spacer(modifier = Modifier.height(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color.White.copy(alpha = 0.2f)
-                    ) {
+                    Surface(shape = RoundedCornerShape(20.dp), color = Color.White.copy(alpha = 0.2f)) {
                         Text(
                             text = role,
                             color = Color.White,
@@ -147,11 +137,24 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Card informações
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = PrimaryBlue)
+            }
+        }
+
+        errorMsg?.let {
+            Text(
+                it,
+                color = DangerRed,
+                fontSize = 13.sp,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = CardWhite),
             elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
@@ -167,65 +170,18 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
                 ProfileInfoRow(Icons.Default.Person, "Nome", name)
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF1F5F9))
-                ProfileInfoRow(Icons.Default.Email, "E-mail", currentUser?.email ?: "—")
+                ProfileInfoRow(Icons.Default.Email, "E-mail", user?.email ?: "—")
                 if (role.isNotBlank()) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF1F5F9))
                     ProfileInfoRow(Icons.Default.Work, "Perfil", role)
                 }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Botão popular dados de demonstração
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = CardWhite),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Dados de demonstração",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextSecondary
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            demoLoading = true
-                            demoMessage = null
-                            DemoDataRepository().seedDemoDataIfNeeded()
-                                .onSuccess { demoMessage = it }
-                                .onFailure { demoMessage = "Erro: ${it.message}" }
-                            demoLoading = false
-                        }
-                    },
-                    enabled = !demoLoading,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
-                ) {
-                    if (demoLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text("Popular dados de demonstração", fontWeight = FontWeight.SemiBold)
-                    }
-                }
-                if (demoMessage != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = demoMessage!!,
-                        fontSize = 12.sp,
-                        color = if (demoMessage!!.startsWith("Erro")) DangerRed else SuccessGreen
+                // Pontuação só faz sentido para quem submete ideias.
+                if (role == "OPERADOR") {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF1F5F9))
+                    ProfileInfoRow(
+                        Icons.Default.EmojiEvents,
+                        "Pontos de inovação",
+                        "${user?.points ?: 0} pts"
                     )
                 }
             }
@@ -233,7 +189,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botão sair
         OutlinedButton(
             onClick = { showDialog = true },
             modifier = Modifier

@@ -1,15 +1,32 @@
+# Android / Gradle
 *.iml
 .gradle
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
 /local.properties
+
+# Backend / Maven
+backend/target/
+target/
+
+# Segredos — nunca versionar
+.env
+*.env
+!backend/.env.example
+google-services.json
+
+# IDE
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/appInsightsSettings.xml
+
+# SO
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties

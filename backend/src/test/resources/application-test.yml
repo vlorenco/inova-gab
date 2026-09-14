@@ -1,0 +1,19 @@
+spring:
+  data:
+    mongodb:
+      database: inovagab-test
+      auto-index-creation: true
+
+inovagab:
+  jwt:
+    secret: chave-de-teste-inovagab-com-mais-de-32-caracteres
+    expiration-ms: 3600000
+    issuer: inovagab-backend
+  gemini:
+    api-key: ""
+    model: gemini-2.0-flash
+
+logging:
+  level:
+    org.springframework: WARN
+    de.flapdoodle: WARN

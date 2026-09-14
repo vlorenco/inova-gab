@@ -20,35 +20,30 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import br.com.fiap.inovagab.data.model.Project
-import br.com.fiap.inovagab.data.repository.ProjectRepository
+import br.com.fiap.inovagab.data.model.DashboardSummary
+import br.com.fiap.inovagab.data.repository.DashboardRepository
 import br.com.fiap.inovagab.ui.theme.*
 
+/**
+ * Indicadores da liderança.
+ *
+ * Diferente da Sprint 1, nenhuma conta é feita aqui: totais, lucro e ROI chegam
+ * prontos de GET /api/dashboard/summary.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(onBack: () -> Unit) {
-    val repository = remember { ProjectRepository() }
-    var projects by remember { mutableStateOf<List<Project>>(emptyList()) }
+    val repository = remember { DashboardRepository() }
+    var summary by remember { mutableStateOf<DashboardSummary?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        repository.getProjects()
-            .onSuccess { projects = it; isLoading = false }
-            .onFailure { isLoading = false }
+        repository.getSummary()
+            .onSuccess { summary = it }
+            .onFailure { errorMsg = it.message }
+        isLoading = false
     }
-
-    // Calculate indicators
-    val totalProjetos = projects.size
-    val ativos = projects.count { it.status == "EM_ANDAMENTO" }
-    val concluidos = projects.count { it.status == "CONCLUIDO" }
-    val planejados = projects.count { it.status == "PLANEJADO" }
-    val cancelados = projects.count { it.status == "CANCELADO" }
-    val investimentoTotal = projects.sumOf { it.investment }
-    val retornoTotal = projects.sumOf { it.financialReturn }
-    val lucro = retornoTotal - investimentoTotal
-    val roi = if (investimentoTotal > 0) ((retornoTotal - investimentoTotal) / investimentoTotal) * 100 else 0.0
-    val reducaoCustos = projects.sumOf { it.costReduction }
-    val produtividadeMedia = if (projects.isNotEmpty()) projects.sumOf { it.productivityGain } / projects.size else 0.0
 
     Scaffold(
         topBar = {
@@ -64,60 +59,112 @@ fun DashboardScreen(onBack: () -> Unit) {
         },
         containerColor = LightBackground
     ) { innerPadding ->
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = PrimaryBlue)
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+        when {
+            isLoading -> Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator(color = PrimaryBlue) }
+
+            summary == null -> Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center
             ) {
-                // KPIs
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    KpiCard("ROI Geral", "%.0f%%".format(roi), SuccessGreen, Modifier.weight(1f))
-                    KpiCard("Retorno", formatCurrency(retornoTotal), PrimaryBlue, Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    KpiCard("Investimento", formatCurrency(investimentoTotal), WarningYellow, Modifier.weight(1f))
-                    KpiCard("Lucro", formatCurrency(lucro), AccentBlue, Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    KpiCard("Redução custos", formatCurrency(reducaoCustos), SuccessGreen, Modifier.weight(1f))
-                    KpiCard("Produtividade", "%.1f%%".format(produtividadeMedia), PrimaryBlue, Modifier.weight(1f))
-                }
+                Text(
+                    errorMsg ?: "Não foi possível carregar os indicadores.",
+                    color = DangerRed,
+                    modifier = Modifier.padding(32.dp)
+                )
+            }
 
-                // Gráfico de projetos
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardWhite),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+            else -> {
+                val data = summary!!
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text("Desempenho dos Projetos", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Spacer(modifier = Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        KpiCard("ROI Geral", "%.0f%%".format(data.roi), SuccessGreen, Modifier.weight(1f))
+                        KpiCard("Retorno", formatCurrency(data.totalFinancialReturn), PrimaryBlue, Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        KpiCard("Investimento", formatCurrency(data.totalInvestment), WarningYellow, Modifier.weight(1f))
+                        KpiCard("Lucro", formatCurrency(data.profit), AccentBlue, Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        KpiCard("Redução custos", formatCurrency(data.totalCostReduction), SuccessGreen, Modifier.weight(1f))
+                        KpiCard("Produtividade", "%.1f%%".format(data.averageProductivityGain), PrimaryBlue, Modifier.weight(1f))
+                    }
 
-                        if (totalProjetos > 0) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().height(180.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                DonutChart(ativos, concluidos, planejados, cancelados)
-                                Text("$totalProjetos", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-                            }
-
+                    // Gráfico de projetos por status
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardWhite),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                "Desempenho dos Projetos",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
                             Spacer(modifier = Modifier.height(16.dp))
-                            LegendItem("Em andamento", ativos, WarningYellow)
-                            LegendItem("Concluídos", concluidos, SuccessGreen)
-                            LegendItem("Planejados", planejados, PrimaryBlue)
-                            LegendItem("Cancelados", cancelados, DangerRed)
-                        } else {
-                            Text("Nenhum projeto cadastrado.", fontSize = 13.sp, color = TextSecondary)
+
+                            if (data.totalProjects > 0) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().height(180.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    DonutChart(
+                                        data.activeProjects,
+                                        data.completedProjects,
+                                        data.plannedProjects,
+                                        data.cancelledProjects
+                                    )
+                                    Text(
+                                        "${data.totalProjects}",
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = TextPrimary
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+                                LegendItem("Em andamento", data.activeProjects, WarningYellow)
+                                LegendItem("Concluídos", data.completedProjects, SuccessGreen)
+                                LegendItem("Planejados", data.plannedProjects, PrimaryBlue)
+                                LegendItem("Cancelados", data.cancelledProjects, DangerRed)
+                            } else {
+                                Text("Nenhum projeto cadastrado.", fontSize = 13.sp, color = TextSecondary)
+                            }
+                        }
+                    }
+
+                    // Funil de inovação: ideias e orientações
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardWhite),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                "Funil de Inovação",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            LegendItem("Ideias cadastradas", data.totalIdeas, AccentBlue)
+                            LegendItem("Ideias em análise", data.ideasUnderAnalysis, WarningYellow)
+                            LegendItem("Ideias aprovadas", data.approvedIdeas, SuccessGreen)
+                            LegendItem("Orientações vigentes", data.activeStrategies, PrimaryBlue)
+                            LegendItem("Orientações totais", data.totalStrategies, TextSecondary)
                         }
                     }
                 }
@@ -146,10 +193,10 @@ private fun KpiCard(label: String, value: String, color: Color, modifier: Modifi
 private fun DonutChart(ativos: Int, concluidos: Int, planejados: Int, cancelados: Int) {
     val total = (ativos + concluidos + planejados + cancelados).toFloat().coerceAtLeast(1f)
     val segments = listOf(
-        Pair(ativos.toFloat(), WarningYellow),
-        Pair(concluidos.toFloat(), SuccessGreen),
-        Pair(planejados.toFloat(), PrimaryBlue),
-        Pair(cancelados.toFloat(), DangerRed)
+        ativos.toFloat() to WarningYellow,
+        concluidos.toFloat() to SuccessGreen,
+        planejados.toFloat() to PrimaryBlue,
+        cancelados.toFloat() to DangerRed
     )
 
     Canvas(modifier = Modifier.size(160.dp)) {
@@ -162,7 +209,15 @@ private fun DonutChart(ativos: Int, concluidos: Int, planejados: Int, cancelados
         segments.forEach { (value, color) ->
             if (value > 0) {
                 val sweep = (value / total) * 360f
-                drawArc(color = color, startAngle = startAngle, sweepAngle = sweep, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(width = strokeWidth))
+                drawArc(
+                    color = color,
+                    startAngle = startAngle,
+                    sweepAngle = sweep,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = strokeWidth)
+                )
                 startAngle += sweep
             }
         }
@@ -184,6 +239,4 @@ private fun LegendItem(label: String, count: Int, color: Color) {
     }
 }
 
-private fun formatCurrency(value: Double): String {
-    return "R$ %,.2f".format(value)
-}
+private fun formatCurrency(value: Double): String = "R$ %,.2f".format(value)

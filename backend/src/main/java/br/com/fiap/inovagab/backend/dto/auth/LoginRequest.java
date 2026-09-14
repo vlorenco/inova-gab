@@ -1,0 +1,15 @@
+package br.com.fiap.inovagab.backend.dto.auth;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
+public record LoginRequest(
+
+        @NotBlank(message = "E-mail e obrigatorio.")
+        @Email(message = "Informe um e-mail valido.")
+        String email,
+
+        @NotBlank(message = "Senha e obrigatoria.")
+        String password
+) {
+}

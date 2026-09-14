@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    HTTP em texto puro liberado apenas para o backend rodando na maquina de
+    desenvolvimento (10.0.2.2 e o host visto pelo Android Emulator).
+    Qualquer outro dominio continua exigindo HTTPS.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <!-- Adicione aqui o IP da sua maquina para testar em celular fisico,
+             por exemplo: <domain includeSubdomains="true">192.168.0.15</domain> -->
+    </domain-config>
+</network-security-config>

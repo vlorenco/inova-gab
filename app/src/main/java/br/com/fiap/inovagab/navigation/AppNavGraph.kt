@@ -104,7 +104,10 @@ fun AppNavGraph() {
         composable(Routes.GESTOR_PROJETOS) {
             ProjetosGestorNewScreen(
                 onBack = { navController.popBackStack() },
-                onNovoProjeto = { navController.navigate(Routes.GESTOR_NOVO_PROJETO) }
+                onNovoProjeto = { navController.navigate(Routes.GESTOR_NOVO_PROJETO) },
+                onEditarProjeto = { projectId ->
+                    navController.navigate("gestor_editar_projeto/$projectId")
+                }
             )
         }
         composable(Routes.GESTOR_NOVO_PROJETO) {
@@ -116,6 +119,13 @@ fun AppNavGraph() {
         ) { backStackEntry ->
             val ideaId = backStackEntry.arguments?.getString("ideaId") ?: ""
             NovoProjetoScreen(ideaId = ideaId, onBack = { navController.popBackStack() })
+        }
+        composable(
+            route = Routes.GESTOR_EDITAR_PROJETO,
+            arguments = listOf(navArgument("projectId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getString("projectId") ?: ""
+            NovoProjetoScreen(projectId = projectId, onBack = { navController.popBackStack() })
         }
 
         // ── Liderança ──────────────────────────────────────────────────────

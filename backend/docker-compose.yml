@@ -1,0 +1,16 @@
+# Sobe apenas o MongoDB local para desenvolvimento/apresentação.
+#   docker compose up -d
+#   docker compose down          (mantém os dados no volume)
+#   docker compose down -v       (apaga os dados)
+services:
+  mongo:
+    image: mongo:7
+    container_name: inovagab-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - inovagab-mongo-data:/data/db
+
+volumes:
+  inovagab-mongo-data:

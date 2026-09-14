@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: inovagab-backend
+  data:
+    mongodb:
+      # MONGODB_URI e a unica forma de apontar para outro banco. Nada de credencial no repositorio.
+      uri: ${MONGODB_URI:mongodb://localhost:27017/inovagab}
+      auto-index-creation: true
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+
+inovagab:
+  jwt:
+    # Em producao SEMPRE defina JWT_SECRET. O valor abaixo existe apenas para
+    # o ambiente local de desenvolvimento/apresentacao.
+    secret: ${JWT_SECRET:inovagab-chave-local-de-desenvolvimento-troque-em-producao}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+    issuer: inovagab-backend
+  gemini:
+    # Sem GEMINI_API_KEY o backend sobe normalmente; apenas o endpoint de
+    # analise por IA responde 503 com mensagem amigavel.
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-2.0-flash}
+    base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+    timeout-seconds: ${GEMINI_TIMEOUT_SECONDS:30}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    br.com.fiap.inovagab: INFO
+    org.springframework.data.mongodb.core.MongoTemplate: WARN

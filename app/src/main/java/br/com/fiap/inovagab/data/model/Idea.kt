@@ -11,7 +11,19 @@ data class Idea(
     val priority: String = "NORMAL",
     val operatorId: String = "",
     val operatorName: String = "",
-    val createdAt: Long = System.currentTimeMillis(),
-    val approvedAt: Long? = null,
-    val convertedToProject: Boolean = false
+    val strategyId: String = "",
+    val strategyTitle: String = "",
+    val convertedToProject: Boolean = false,
+    val aiAnalysis: AiAnalysis? = null
+)
+
+/** Pontuacao automatica gerada pelo Gemini atraves do backend. */
+data class AiAnalysis(
+    val score: Int = 0,
+    val impactScore: Int = 0,
+    val feasibilityScore: Int = 0,
+    val innovationScore: Int = 0,
+    val strategicAlignmentScore: Int = 0,
+    val recommendation: String = "",
+    val summary: String = ""
 )

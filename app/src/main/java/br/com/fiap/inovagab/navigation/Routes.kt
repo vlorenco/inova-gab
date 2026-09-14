@@ -19,6 +19,7 @@ object Routes {
     const val GESTOR_PROJETOS = "gestor_projetos"
     const val GESTOR_NOVO_PROJETO = "gestor_novo_projeto"
     const val GESTOR_NOVO_PROJETO_IDEIA = "gestor_novo_projeto/{ideaId}"
+    const val GESTOR_EDITAR_PROJETO = "gestor_editar_projeto/{projectId}"
 
     // Fluxo Liderança
     const val LIDERANCA_STRATEGIES = "lideranca_strategies"
