@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Único diretório exposto pelo FileProvider: a pasta de relatórios dentro do
+  cache do app. Nada além dos CSV que a tela de Relatórios acabou de gerar
+  fica acessível para quem receber o compartilhamento.
+-->
+<paths>
+    <cache-path name="relatorios" path="relatorios/" />
+</paths>

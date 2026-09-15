@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.InovaGAB" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+        Tema de janela do INOVA+. O fundo quase-preto já aqui evita o flash
+        branco entre o splash do sistema e a primeira renderização do Compose.
+    -->
+    <style name="Theme.InovaGAB" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/inova_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>
