@@ -80,14 +80,19 @@ Retrofit · OkHttp (interceptor de JWT) · Gson · DataStore Preferences
 
 ## 4. Pré-requisitos
 
-| Ferramenta | Versão | Observação |
-|---|---|---|
-| **JDK 21** | 21.x | Necessário para o backend. O JBR que vem com o Android Studio serve (`<Android Studio>/jbr`) |
-| **MongoDB** | 7 | Via Docker (mais simples) ou instalação local |
-| **Android Studio** | Ladybug ou mais novo | Para abrir e rodar o app |
-| **Android SDK** | compileSdk 36, minSdk 28 | Instalado pelo Android Studio |
-| Maven | — | **Não precisa instalar**: o projeto usa o wrapper `./mvnw` |
-| Gradle | — | **Não precisa instalar**: o projeto usa o wrapper `./gradlew` |
+| Ferramenta | Versão | Onde obter | Observação |
+|---|---|---|---|
+| **JDK 21** | 21.x | [adoptium.net](https://adoptium.net/temurin/releases/?version=21) | Necessário para o backend. O JBR que vem com o Android Studio também serve (`<Android Studio>/jbr`) |
+| **Android Studio** | Ladybug ou mais novo | [developer.android.com/studio](https://developer.android.com/studio) | Para abrir e rodar o app |
+| **Android SDK** | compileSdk 36, minSdk 28 | Instalado pelo próprio Android Studio | No primeiro boot ele baixa o SDK e oferece criar um emulador |
+| **Docker Desktop** | qualquer recente | [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) | Caminho mais simples para o MongoDB. Opcional se você instalar o Mongo direto |
+| **MongoDB** | 7 | [mongodb.com/try/download/community](https://www.mongodb.com/try/download/community) | Só precisa baixar se **não** for usar Docker |
+| Maven | — | — | **Não precisa instalar**: o projeto usa o wrapper `./mvnw` |
+| Gradle | — | — | **Não precisa instalar**: o projeto usa o wrapper `./gradlew` |
+
+Nenhuma conta, chave ou serviço pago é necessário para rodar o sistema completo.
+A chave do Gemini é opcional e afeta apenas o botão de análise por IA — veja a
+[seção 8](#8-configurar-o-gemini).
 
 Confirme o Java:
 
@@ -128,16 +133,29 @@ O banco `inovagab` é criado sozinho.
 
 ### 5.2 Variáveis de ambiente
 
+**Para só rodar e avaliar o projeto, você pode pular esta etapa inteira.** As duas
+variáveis são opcionais no ambiente local:
+
+| Variável | Se você não definir |
+|---|---|
+| `JWT_SECRET` | A API usa um segredo de desenvolvimento embutido e sobe normalmente |
+| `GEMINI_API_KEY` | A API sobe normalmente; apenas o botão "Analisar com IA" responde com um aviso |
+
+Para definir mesmo assim, use o **mesmo terminal** em que vai iniciar a API:
+
 ```bash
 export JWT_SECRET="troque-por-um-segredo-aleatorio-de-no-minimo-32-caracteres"
-export GEMINI_API_KEY="sua-chave-do-gemini"      # opcional; sem ela só a IA fica indisponível
+export GEMINI_API_KEY="sua-chave-do-gemini"
 ```
 ```powershell
 $env:JWT_SECRET = "troque-por-um-segredo-aleatorio-de-no-minimo-32-caracteres"
 $env:GEMINI_API_KEY = "sua-chave-do-gemini"
 ```
 
-Modelo completo em [`backend/.env.example`](backend/.env.example).
+> Definir a variável **depois** que a API já subiu não tem efeito: pare e inicie de novo.
+> O arquivo [`backend/.env.example`](backend/.env.example) é apenas uma referência de
+> quais variáveis existem — o Spring Boot **não** lê arquivos `.env` automaticamente.
+
 **Nenhuma credencial real é versionada.**
 
 ### 5.3 Backend
@@ -163,15 +181,32 @@ pelo app.
 ### 5.4 Android
 
 1. Abra a pasta raiz do repositório no **Android Studio** (não a pasta `app/`).
-2. Aguarde o *Gradle sync*. O arquivo `local.properties` com o caminho do SDK é
-   gerado pelo próprio Android Studio (e não é versionado).
-3. Crie/inicie um **emulador** (API 28+).
+2. Aguarde o *Gradle sync*. O arquivo `local.properties`, que aponta o caminho do
+   SDK, é gerado automaticamente pelo Android Studio — por isso não é versionado.
+3. Crie/inicie um **emulador** (API 28+): *Device Manager* → *Create Device*.
 4. Rode a configuração **app**.
 
-Ou pela linha de comando:
+**Pela linha de comando**, o Gradle precisa saber onde está o Android SDK. Se você
+nunca abriu o projeto no Android Studio, o `local.properties` ainda não existe e o
+build falha com `SDK location not found`. Resolva de uma das duas formas:
 
 ```bash
-./gradlew :app:installDebug
+# Opção A — criar o local.properties (ajuste o caminho do seu SDK)
+echo "sdk.dir=C:/Users/SEU-USUARIO/AppData/Local/Android/Sdk" > local.properties
+
+# Opção B — exportar a variável de ambiente
+export ANDROID_HOME="/c/Users/SEU-USUARIO/AppData/Local/Android/Sdk"
+```
+```powershell
+# PowerShell — opção B
+$env:ANDROID_HOME = "C:\Users\SEU-USUARIO\AppData\Local\Android\Sdk"
+```
+
+O caminho do SDK aparece no Android Studio em
+*Settings → Languages & Frameworks → Android SDK*. Depois disso:
+
+```bash
+./gradlew :app:installDebug     # compila e instala no emulador já aberto
 ```
 
 O app já aponta para `http://10.0.2.2:8080/`, que é como o emulador enxerga o
@@ -355,6 +390,10 @@ Cada evento credita uma única vez, garantido por marcadores no documento da ide
 ---
 
 ## 11. Gerar o APK
+
+> Pela linha de comando o Gradle precisa localizar o Android SDK. Se aparecer
+> `SDK location not found`, veja [a seção 5.4](#54-android) — é só criar o
+> `local.properties` ou exportar `ANDROID_HOME`.
 
 **Debug** (aponta para `10.0.2.2:8080`, ideal para o emulador):
 
