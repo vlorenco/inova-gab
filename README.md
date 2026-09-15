@@ -8,6 +8,22 @@ dos operadores em projetos com resultado mensurável.
 > consumir um backend REST real em Spring Boot, com MongoDB, autenticação JWT,
 > autorização por perfil no servidor e análise de ideias por IA (Google Gemini).
 
+> ### 📦 O backend é entregue separadamente
+>
+> O backend Spring Boot é entregue separadamente no arquivo
+> **`Backend_InovaGAB.zip`**. Para executar a solução completa, extraia os dois
+> pacotes no mesmo diretório ou siga as instruções do README presente no pacote
+> do backend.
+>
+> Os comandos deste README que começam com `cd backend` pressupõem essa
+> estrutura — ou seja, a pasta `backend/` ao lado da pasta do aplicativo Android:
+>
+> ```
+> InovaGAB/
+> ├── app/ · gradle/ · gradlew · build.gradle.kts   (Android_InovaGAB.zip)
+> └── backend/                                       (Backend_InovaGAB.zip)
+> ```
+
 ---
 
 ## Índice
@@ -90,9 +106,9 @@ Retrofit · OkHttp (interceptor de JWT) · Gson · DataStore Preferences
 | Maven | — | — | **Não precisa instalar**: o projeto usa o wrapper `./mvnw` |
 | Gradle | — | — | **Não precisa instalar**: o projeto usa o wrapper `./gradlew` |
 
-Nenhuma conta, chave ou serviço pago é necessário para rodar o sistema completo.
-A chave do Gemini é opcional e afeta apenas o botão de análise por IA — veja a
-[seção 8](#8-configurar-o-gemini).
+Nenhuma conta ou serviço pago é necessário para executar as funcionalidades
+principais. A chave do Google Gemini é opcional e necessária apenas para testar a
+funcionalidade de análise por IA — veja a [seção 8](#8-configurar-o-gemini).
 
 Confirme o Java:
 
