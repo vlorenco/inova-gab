@@ -26,7 +26,7 @@ inovagab:
     # Sem GEMINI_API_KEY o backend sobe normalmente; apenas o endpoint de
     # analise por IA responde 503 com mensagem amigavel.
     api-key: ${GEMINI_API_KEY:}
-    model: ${GEMINI_MODEL:gemini-2.0-flash}
+    model: ${GEMINI_MODEL:gemini-3.5-flash}
     base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
     timeout-seconds: ${GEMINI_TIMEOUT_SECONDS:30}
 

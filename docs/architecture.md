@@ -131,6 +131,7 @@ sequenceDiagram
 
     OP->>API: POST /api/ideas (+strategyId)
     Note over API: operatorId vem do JWT,<br/>nunca do corpo da requisição
+    Note over API: strategyId é obrigatório e<br/>precisa estar vigente (active=true)
     API->>DB: salva ideia (EM_ANALISE)
     API->>DB: users.points += 10
 
@@ -163,6 +164,7 @@ flowchart TD
         O4["GET  /api/ideas/my"]
         O5["GET  /api/ranking · /api/ranking/me"]
         O6["GET  /api/auth/me"]
+        O7["GET  /api/dashboard/my-performance — só os próprios números"]
     end
     subgraph GESTOR
         G1["GET  /api/strategies"]
@@ -170,14 +172,27 @@ flowchart TD
         G3["PATCH /api/ideas/{id}/priority · /status"]
         G4["POST /api/ideas/{id}/ai-analysis"]
         G5["CRUD /api/projects"]
+        G6["GET  /api/dashboard/curation — sem dado financeiro"]
     end
     subgraph LIDERANCA
         L1["CRUD /api/strategies"]
         L2["GET  /api/strategies/{id}/history"]
         L3["GET  /api/projects (somente leitura)"]
-        L4["GET  /api/dashboard/**"]
+        L4["GET  /api/dashboard/** (summary · strategies · projects)"]
     end
 ```
+
+`/api/dashboard` tem três recortes, um por perfil, e a separação é o que
+mantém o dado financeiro restrito:
+
+| Rota | Quem lê | O que devolve |
+|---|---|---|
+| `/summary`, `/strategies/{id}`, `/projects/{id}` | **LIDERANCA** | investimento, retorno, lucro, ROI |
+| `/curation` | GESTOR e LIDERANCA | só contagens do fluxo de curadoria |
+| `/my-performance` | **OPERADOR** | só as ideias e os pontos do dono do token |
+
+As duas exceções precisam vir **antes** do matcher `/api/dashboard/**` no
+`SecurityConfig`, ou a regra ampla da liderança vence e devolve `403`.
 
 A autorização é aplicada em **duas camadas**:
 
@@ -299,3 +314,6 @@ visto de dentro do Android Emulator.
 | Resposta do Gemini validada campo a campo | Modelo de linguagem pode devolver texto fora do formato; nota fora de 0-100 é limitada e `recommendation` desconhecida cai para um valor derivado do score. |
 | ROI = 0 quando investimento é 0 | Evita divisão por zero: sem capital aplicado não há retorno percentual a medir. |
 | DTOs próprios em todas as respostas | O documento `User` nunca chega ao cliente — a senha (mesmo em hash) jamais é serializada. |
+| A home de cada perfil **é** o dashboard dele | Ter uma tela de início que só leva a outra tela de indicadores criava dois caminhos para o mesmo conteúdo. Os cards que sobraram são os que a barra inferior não alcança. |
+| Painéis de gráfico em arquivo próprio (`DashboardPanels`, `CuradoriaPanels`, `DesempenhoPanels`) | São usados por mais de uma tela; duplicar significaria corrigir cada ajuste de leitura em dois lugares. |
+| `/api/dashboard` dividido em três recortes por perfil | Gestor e operador precisam de indicadores, mas não do dado financeiro do portfólio. Separar por rota mantém a restrição no `SecurityConfig`, não em `if` espalhado pelo serviço. |

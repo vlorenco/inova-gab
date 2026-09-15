@@ -3,6 +3,7 @@ package br.com.fiap.inovagab.backend.service;
 import br.com.fiap.inovagab.backend.dto.strategy.StrategyHistoryResponse;
 import br.com.fiap.inovagab.backend.dto.strategy.StrategyRequest;
 import br.com.fiap.inovagab.backend.dto.strategy.StrategyResponse;
+import br.com.fiap.inovagab.backend.exception.BadRequestException;
 import br.com.fiap.inovagab.backend.exception.NotFoundException;
 import br.com.fiap.inovagab.backend.model.Strategy;
 import br.com.fiap.inovagab.backend.model.StrategyAction;
@@ -84,10 +85,28 @@ public class StrategyService {
         return entries.stream().map(StrategyHistoryResponse::from).toList();
     }
 
-    /** Valida que o strategyId informado por ideia/projeto realmente existe. */
-    public void validateExists(String strategyId) {
-        if (strategyId != null && !strategyId.isBlank() && !strategyRepository.existsById(strategyId)) {
-            throw new NotFoundException("Orientacao estrategica informada nao existe: " + strategyId);
+    /**
+     * Vinculo obrigatorio entre ideia/projeto e orientacao estrategica.
+     *
+     * Um vinculo novo - ou trocado - so vale para uma orientacao vigente.
+     * Manter o vinculo que o registro ja tinha exige apenas que a orientacao
+     * continue existindo: desativar uma orientacao nao pode travar a edicao do
+     * que foi cadastrado enquanto ela ainda estava no ar.
+     *
+     * @param strategyId         orientacao que o registro passa a apontar
+     * @param previousStrategyId orientacao que o registro ja apontava, ou null na criacao
+     */
+    public void validateLink(String strategyId, String previousStrategyId) {
+        if (strategyId == null || strategyId.isBlank()) {
+            throw new BadRequestException("Informe a orientacao estrategica vinculada.");
+        }
+
+        Strategy strategy = findOrThrow(strategyId);
+
+        boolean unchanged = strategyId.equals(previousStrategyId);
+        if (!unchanged && !strategy.isActive()) {
+            throw new BadRequestException(
+                    "A orientacao estrategica \"" + strategy.getTitle() + "\" nao esta vigente.");
         }
     }
 

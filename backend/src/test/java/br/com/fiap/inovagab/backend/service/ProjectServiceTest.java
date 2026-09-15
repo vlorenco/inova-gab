@@ -113,6 +113,8 @@ class ProjectServiceTest {
         assertThat(response.ideaId()).isEqualTo("idea-1");
         assertThat(response.strategyId()).isEqualTo("strat-1");
         verify(ideaService).markConvertedToProject(idea);
+        // O vinculo validado e o herdado da ideia, nao o corpo vazio da requisicao.
+        verify(strategyService).validateLink("strat-1", null);
     }
 
     @Test

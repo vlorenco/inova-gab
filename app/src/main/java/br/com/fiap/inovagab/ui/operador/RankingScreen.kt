@@ -1,27 +1,57 @@
 package br.com.fiap.inovagab.ui.operador
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import br.com.fiap.inovagab.data.model.MyRanking
 import br.com.fiap.inovagab.data.model.RankingEntry
 import br.com.fiap.inovagab.data.repository.RankingRepository
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.ui.components.InovaCard
+import br.com.fiap.inovagab.ui.components.InovaEmptyState
+import br.com.fiap.inovagab.ui.components.InovaErrorState
+import br.com.fiap.inovagab.ui.components.InovaListScreen
+import br.com.fiap.inovagab.ui.components.InovaLoading
+import br.com.fiap.inovagab.ui.components.InovaTopBar
+import br.com.fiap.inovagab.ui.components.PointsBlock
+import br.com.fiap.inovagab.ui.components.SectionHeader
+import br.com.fiap.inovagab.ui.theme.InovaBlueLight
+import br.com.fiap.inovagab.ui.theme.InovaBlueTint
+import br.com.fiap.inovagab.ui.theme.InovaBlueTintBorder
+import br.com.fiap.inovagab.ui.theme.InovaSpacing
+import br.com.fiap.inovagab.ui.theme.InovaTextPrimary
+import br.com.fiap.inovagab.ui.theme.InovaTextSecondary
+import br.com.fiap.inovagab.ui.theme.InovaTrack
+import br.com.fiap.inovagab.ui.theme.InovaType
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RankingScreen(onBack: () -> Unit) {
     val repository = remember { RankingRepository() }
@@ -39,58 +69,60 @@ fun RankingScreen(onBack: () -> Unit) {
         isLoading = false
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Ranking de Inovadores", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBlue)
-            )
-        },
-        containerColor = LightBackground
-    ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            when {
-                isLoading -> CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = PrimaryBlue
-                )
-                errorMsg != null -> Text(
-                    errorMsg!!,
-                    color = DangerRed,
-                    modifier = Modifier.align(Alignment.Center).padding(32.dp)
-                )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 16.dp)
-                ) {
-                    myPosition?.let { me ->
-                        item { MyPointsCard(me) }
-                        item { Spacer(modifier = Modifier.height(4.dp)) }
-                    }
+    val topPoints = ranking.maxOfOrNull { it.points } ?: 0
 
-                    if (ranking.isEmpty()) {
-                        item {
-                            Text(
-                                "Nenhum operador pontuou ainda.",
-                                color = TextSecondary,
-                                modifier = Modifier.fillMaxWidth().padding(32.dp)
-                            )
-                        }
-                    } else {
-                        items(ranking) { entry ->
-                            RankingItem(
-                                posicao = entry.position,
-                                nome = entry.name,
-                                pontos = entry.points,
-                                destaque = entry.position == myPosition?.position
-                            )
-                        }
+    InovaListScreen(
+        header = { InovaTopBar(title = "Ranking de Inovadores", onBack = onBack) }
+    ) {
+        when {
+            isLoading -> InovaLoading()
+            errorMsg != null -> InovaErrorState(errorMsg!!)
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(InovaSpacing.card),
+                contentPadding = PaddingValues(
+                    start = InovaSpacing.screenHorizontal,
+                    end = InovaSpacing.screenHorizontal,
+                    top = InovaSpacing.screenVertical,
+                    bottom = 28.dp
+                )
+            ) {
+                myPosition?.let { me ->
+                    item {
+                        PointsBlock(
+                            pointsLabel = "Meus pontos",
+                            points = me.points,
+                            pointsUnit = "pts",
+                            positionLabel = "Posição",
+                            positionText = if (me.position > 0) {
+                                "${me.position}º de ${me.totalOperators}"
+                            } else {
+                                null
+                            },
+                            progress = if (topPoints > 0) me.points / topPoints.toFloat() else 0f,
+                            progressCaption = null
+                        )
+                    }
+                    item { Spacer(modifier = Modifier.height(2.dp)) }
+                }
+
+                if (ranking.isEmpty()) {
+                    item { InovaEmptyState("Nenhum operador pontuou ainda.") }
+                } else {
+                    item {
+                        SectionHeader(
+                            title = "Ranking de Inovadores",
+                            trailing = ranking.size.toString().padStart(2, '0')
+                        )
+                    }
+                    items(ranking) { entry ->
+                        RankingItem(
+                            posicao = entry.position,
+                            nome = entry.name,
+                            pontos = entry.points,
+                            destaque = entry.position == myPosition?.position,
+                            progress = if (topPoints > 0) entry.points / topPoints.toFloat() else 0f
+                        )
                     }
                 }
             }
@@ -99,85 +131,107 @@ fun RankingScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun MyPointsCard(me: MyRanking) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = PrimaryBlue)
-    ) {
+private fun RankingItem(
+    posicao: Int,
+    nome: String,
+    pontos: Int,
+    destaque: Boolean,
+    progress: Float
+) {
+    InovaCard(accent = destaque) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text("Meus pontos", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "${me.points} pts",
-                    color = Color.White,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
-            if (me.position > 0) {
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Posição", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "${me.position}º de ${me.totalOperators}",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RankingItem(posicao: Int, nome: String, pontos: Int, destaque: Boolean) {
-    val medalColor = when (posicao) {
-        1 -> Color(0xFFFFD700) // Ouro
-        2 -> Color(0xFFC0C0C0) // Prata
-        3 -> Color(0xFFCD7F32) // Bronze
-        else -> Color(0xFFE0E0E0)
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (destaque) AccentBlue.copy(alpha = 0.08f) else CardWhite
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(32.dp).background(medalColor, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "$posicao",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (posicao <= 3) Color.Black else Color.Gray
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(text = nome, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-            }
+            PositionMedal(posicao = posicao)
+            Spacer(modifier = Modifier.width(13.dp))
             Text(
-                text = "$pontos pts",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = PrimaryBlue
+                text = nome,
+                style = InovaType.cardLabel,
+                color = InovaTextPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = pontos.toString(),
+                    style = InovaType.metricSmall,
+                    color = InovaTextPrimary
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "pts",
+                    style = InovaType.monoTiny,
+                    color = InovaBlueLight,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(11.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(CircleShape)
+                .background(InovaTrack)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progress.coerceIn(0f, 1f))
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(
+                        androidx.compose.ui.graphics.Brush.horizontalGradient(
+                            listOf(br.com.fiap.inovagab.ui.theme.InovaBlue, InovaBlueLight)
+                        )
+                    )
+            )
+        }
+    }
+}
+
+/**
+ * Posição no ranking. Os três primeiros ganham o troféu — único ícone
+ * preenchido do app, por ser elemento de gamificação — sem perder o número.
+ */
+@Composable
+private fun PositionMedal(posicao: Int) {
+    val podium = posicao in 1..3
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(if (podium) InovaBlueTint else Color.Transparent)
+            .border(
+                BorderStroke(1.dp, if (podium) InovaBlueTintBorder else InovaTrack),
+                CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (podium) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.EmojiEvents,
+                    contentDescription = null,
+                    tint = InovaBlueLight,
+                    modifier = Modifier.size(11.dp)
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                Text(
+                    text = posicao.toString(),
+                    style = InovaType.monoBadge,
+                    color = InovaBlueLight
+                )
+            }
+        } else {
+            Text(
+                text = posicao.toString(),
+                style = InovaType.monoBadge,
+                color = InovaTextSecondary
             )
         }
     }

@@ -46,8 +46,6 @@ public class ProjectService {
     }
 
     public ProjectResponse create(ProjectRequest request) {
-        strategyService.validateExists(request.strategyId());
-
         Project project = new Project();
         applyFields(project, request);
         project.setCreatedAt(Instant.now());
@@ -62,6 +60,9 @@ public class ProjectService {
             }
         }
 
+        // So depois de herdar da ideia sabemos qual e o vinculo final do projeto.
+        strategyService.validateLink(project.getStrategyId(), null);
+
         Project saved = projectRepository.save(project);
 
         if (sourceIdea != null) {
@@ -73,7 +74,7 @@ public class ProjectService {
 
     public ProjectResponse update(String id, ProjectRequest request) {
         Project project = findOrThrow(id);
-        strategyService.validateExists(request.strategyId());
+        String previousStrategyId = project.getStrategyId();
 
         Idea sourceIdea = resolveSourceIdea(request.ideaId(), project.getId());
 
@@ -82,7 +83,12 @@ public class ProjectService {
 
         if (sourceIdea != null) {
             project.setIdeaId(sourceIdea.getId());
+            if (project.getStrategyId() == null) {
+                project.setStrategyId(sourceIdea.getStrategyId());
+            }
         }
+
+        strategyService.validateLink(project.getStrategyId(), previousStrategyId);
 
         Project saved = projectRepository.save(project);
 

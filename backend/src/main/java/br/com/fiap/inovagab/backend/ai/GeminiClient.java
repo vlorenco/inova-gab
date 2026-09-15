@@ -10,6 +10,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Duration;
 import java.util.Map;
@@ -24,6 +25,12 @@ import java.util.Map;
 public class GeminiClient {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiClient.class);
+
+    /** Tentativas totais quando o Gemini responde que esta sobrecarregado. */
+    private static final int MAX_ATTEMPTS = 3;
+
+    /** Espera base entre tentativas; cresce a cada rodada (1s, 2s). */
+    private static final long RETRY_DELAY_MS = 1_000L;
 
     private final GeminiProperties properties;
     private final ObjectMapper objectMapper;
@@ -72,24 +79,85 @@ public class GeminiClient {
                 )
         );
 
-        String raw;
-        try {
-            raw = restClient.post()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/v1beta/models/{model}:generateContent")
-                            .queryParam("key", properties.getApiKey())
-                            .build(properties.getModel()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .body(String.class);
-        } catch (RestClientException ex) {
-            log.warn("Falha ao chamar o Gemini (modelo {}): {}", properties.getModel(), ex.getMessage());
-            throw new AiServiceException(
-                    "Nao foi possivel falar com o servico de IA agora. Tente novamente em instantes.");
+        return extractText(postWithRetry(body));
+    }
+
+    /**
+     * O Gemini devolve 503 UNAVAILABLE ("high demand") de forma intermitente, e
+     * uma tentativa isolada perde a analise por um motivo que costuma passar em
+     * segundos. Por isso 503 e 429 sao repetidos; erro de chave, de modelo ou de
+     * cota nao adianta repetir e falha na hora.
+     */
+    private String postWithRetry(Map<String, Object> body) {
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                return restClient.post()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/v1beta/models/{model}:generateContent")
+                                .queryParam("key", properties.getApiKey())
+                                .build(properties.getModel()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(body)
+                        .retrieve()
+                        .body(String.class);
+
+            } catch (RestClientResponseException ex) {
+                int status = ex.getStatusCode().value();
+                String detail = errorMessageOf(ex.getResponseBodyAsString());
+
+                if (!isTransient(status) || attempt == MAX_ATTEMPTS) {
+                    // O Gemini respondeu, mas recusou. Engolir o motivo aqui deixaria
+                    // o gestor sem saber se o problema e a chave, o modelo ou a cota.
+                    log.warn("Gemini recusou a requisicao (modelo {}, HTTP {}): {}",
+                            properties.getModel(), status, detail);
+                    throw new AiServiceException(
+                            "O servico de IA recusou a requisicao (HTTP " + status + "): " + detail);
+                }
+
+                log.info("Gemini indisponivel (HTTP {}), tentativa {}/{}: {}",
+                        status, attempt, MAX_ATTEMPTS, detail);
+                sleep(RETRY_DELAY_MS * attempt);
+
+            } catch (RestClientException ex) {
+                // Aqui e falha de transporte mesmo: DNS, timeout, conexao recusada.
+                log.warn("Falha de rede ao chamar o Gemini (modelo {}): {}",
+                        properties.getModel(), ex.getMessage());
+                throw new AiServiceException(
+                        "Nao foi possivel falar com o servico de IA agora. Tente novamente em instantes.");
+            }
         }
 
-        return extractText(raw);
+        // Inalcancavel: a ultima tentativa do laco sempre retorna ou lanca.
+        throw new AiServiceException("O servico de IA esta sobrecarregado. Tente novamente em instantes.");
+    }
+
+    private boolean isTransient(int status) {
+        return status == 503 || status == 429 || status == 500;
+    }
+
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new AiServiceException("Analise por IA interrompida.");
+        }
+    }
+
+    /** Extrai `error.message` do corpo de erro do Gemini, com fallback legivel. */
+    private String errorMessageOf(String errorBody) {
+        if (errorBody == null || errorBody.isBlank()) {
+            return "sem detalhes na resposta";
+        }
+        try {
+            String message = objectMapper.readTree(errorBody).path("error").path("message").asText("");
+            if (!message.isBlank()) {
+                return message;
+            }
+        } catch (Exception ignored) {
+            // Corpo de erro fora do formato JSON esperado: cai no recorte bruto abaixo.
+        }
+        return errorBody.length() <= 300 ? errorBody : errorBody.substring(0, 300) + "...";
     }
 
     /** Percorre candidates[0].content.parts[*].text da resposta do Gemini. */

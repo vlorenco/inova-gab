@@ -9,7 +9,7 @@ public class GeminiProperties {
     private String apiKey;
 
     /** Modelo configuravel para nao depender de um nome que pode ser depreciado. */
-    private String model = "gemini-2.0-flash";
+    private String model = "gemini-3.5-flash";
 
     private String baseUrl = "https://generativelanguage.googleapis.com";
 

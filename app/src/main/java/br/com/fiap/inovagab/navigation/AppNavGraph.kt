@@ -11,7 +11,8 @@ import br.com.fiap.inovagab.ui.gestor.GestorHomeScreen
 import br.com.fiap.inovagab.ui.gestor.IdeiasGestorNewScreen
 import br.com.fiap.inovagab.ui.gestor.NovoProjetoScreen
 import br.com.fiap.inovagab.ui.gestor.ProjetosGestorNewScreen
-import br.com.fiap.inovagab.ui.lideranca.DashboardScreen
+import br.com.fiap.inovagab.ui.gestor.RelatoriosGestorScreen
+import br.com.fiap.inovagab.ui.lideranca.IndicadoresScreen
 import br.com.fiap.inovagab.ui.lideranca.LeaderProjectsScreen
 import br.com.fiap.inovagab.ui.lideranca.LiderancaHomeScreen
 import br.com.fiap.inovagab.ui.lideranca.StrategiesScreen
@@ -22,12 +23,24 @@ import br.com.fiap.inovagab.ui.operador.OperadorHomeScreen
 import br.com.fiap.inovagab.ui.operador.OrientacoesOperadorScreen
 import br.com.fiap.inovagab.ui.operador.RankingScreen
 import br.com.fiap.inovagab.ui.profile.ProfileScreen
+import br.com.fiap.inovagab.ui.splash.SplashScreen
 
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = Routes.LOGIN) {
+    NavHost(navController = navController, startDestination = Routes.SPLASH) {
+
+        // ── Splash ─────────────────────────────────────────────────────────
+        composable(Routes.SPLASH) {
+            SplashScreen(
+                onFinished = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                }
+            )
+        }
 
         // ── Login ──────────────────────────────────────────────────────────
         composable(Routes.LOGIN) {
@@ -63,7 +76,10 @@ fun AppNavGraph() {
             CadastroIdeiaNewScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.OPERADOR_MINHAS_IDEIAS) {
-            MinhasIdeiasNewScreen(onBack = { navController.popBackStack() })
+            MinhasIdeiasNewScreen(
+                onBack = { navController.popBackStack() },
+                onNovaIdeia = { navController.navigate(Routes.OPERADOR_CADASTRAR_IDEIA) }
+            )
         }
         composable(Routes.OPERADOR_ORIENTACOES) {
             OrientacoesOperadorScreen(onBack = { navController.popBackStack() })
@@ -77,7 +93,8 @@ fun AppNavGraph() {
             GestorHomeScreen(
                 onProfileClick = { navController.navigate(Routes.PROFILE) },
                 onIdeiasClick = { navController.navigate(Routes.GESTOR_IDEIAS) },
-                onProjetosClick = { navController.navigate(Routes.GESTOR_PROJETOS) }
+                onProjetosClick = { navController.navigate(Routes.GESTOR_PROJETOS) },
+                onRelatoriosClick = { navController.navigate(Routes.GESTOR_RELATORIOS) }
             )
         }
         composable(Routes.GESTOR_IDEIAS) {
@@ -128,20 +145,24 @@ fun AppNavGraph() {
             NovoProjetoScreen(projectId = projectId, onBack = { navController.popBackStack() })
         }
 
+        composable(Routes.GESTOR_RELATORIOS) {
+            RelatoriosGestorScreen(onBack = { navController.popBackStack() })
+        }
+
         // ── Liderança ──────────────────────────────────────────────────────
         composable(Routes.LIDERANCA_HOME) {
             LiderancaHomeScreen(
                 onProfileClick = { navController.navigate(Routes.PROFILE) },
                 onStrategiesClick = { navController.navigate(Routes.LIDERANCA_STRATEGIES) },
-                onDashboardClick = { navController.navigate(Routes.LIDERANCA_DASHBOARD) },
-                onProjectsClick = { navController.navigate(Routes.LIDERANCA_PROJECTS) }
+                onProjectsClick = { navController.navigate(Routes.LIDERANCA_PROJECTS) },
+                onIndicatorsClick = { navController.navigate(Routes.LIDERANCA_INDICADORES) }
             )
+        }
+        composable(Routes.LIDERANCA_INDICADORES) {
+            IndicadoresScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.LIDERANCA_STRATEGIES) {
             StrategiesScreen(onBack = { navController.popBackStack() })
-        }
-        composable(Routes.LIDERANCA_DASHBOARD) {
-            DashboardScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.LIDERANCA_PROJECTS) {
             LeaderProjectsScreen(onBackClick = { navController.popBackStack() })

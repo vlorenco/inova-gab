@@ -52,7 +52,7 @@ class AiAnalysisServiceTest {
                  "strategicAlignmentScore":91,"recommendation":"ALTA_PRIORIDADE",
                  "summary":"Alto impacto operacional com implantacao viavel."}
                 """);
-        when(geminiClient.getModel()).thenReturn("gemini-2.0-flash");
+        when(geminiClient.getModel()).thenReturn("gemini-3.5-flash");
 
         AiAnalysis analysis = service.analyze(idea(), null, "ge-1");
 
@@ -62,7 +62,7 @@ class AiAnalysisServiceTest {
         assertThat(analysis.getRecommendation()).isEqualTo("ALTA_PRIORIDADE");
         assertThat(analysis.getAnalyzedAt()).isNotNull();
         assertThat(analysis.getAnalyzedBy()).isEqualTo("ge-1");
-        assertThat(analysis.getModel()).isEqualTo("gemini-2.0-flash");
+        assertThat(analysis.getModel()).isEqualTo("gemini-3.5-flash");
     }
 
     @Test

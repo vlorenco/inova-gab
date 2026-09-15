@@ -87,7 +87,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/projects/**").hasRole(GESTOR)
                         .requestMatchers(HttpMethod.DELETE, "/api/projects/**").hasRole(GESTOR)
 
-                        // Dashboard: exclusivo da lideranca
+                        // Dashboard: exclusivo da lideranca, com uma excecao.
+                        // A curadoria e o painel de trabalho do gestor e nao expoe
+                        // numero financeiro nenhum - por isso sai da regra geral.
+                        // Precisa vir antes do /** ou o matcher amplo vence.
+                        .requestMatchers(HttpMethod.GET, "/api/dashboard/curation")
+                            .hasAnyRole(GESTOR, LIDERANCA)
+                        // Desempenho proprio: so devolve dados do dono do token.
+                        .requestMatchers(HttpMethod.GET, "/api/dashboard/my-performance")
+                            .hasRole(OPERADOR)
                         .requestMatchers("/api/dashboard/**").hasRole(LIDERANCA)
 
                         // Ranking: operador e gestor consultam

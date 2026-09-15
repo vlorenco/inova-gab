@@ -41,7 +41,8 @@ public class IdeaService {
     // ── Operador ────────────────────────────────────────────────────────────
 
     public IdeaResponse create(IdeaRequest request, AuthenticatedUser author) {
-        strategyService.validateExists(request.strategyId());
+        // Toda ideia nasce vinculada a uma orientacao estrategica vigente.
+        strategyService.validateLink(request.strategyId(), null);
 
         Idea idea = new Idea();
         applyEditableFields(idea, request);
@@ -79,7 +80,7 @@ public class IdeaService {
                     "Esta ideia ja foi avaliada pelo gestor e nao pode mais ser editada.");
         }
 
-        strategyService.validateExists(request.strategyId());
+        strategyService.validateLink(request.strategyId(), idea.getStrategyId());
         applyEditableFields(idea, request);
         idea.setUpdatedAt(Instant.now());
         return toResponse(ideaRepository.save(idea));

@@ -1,28 +1,61 @@
 package br.com.fiap.inovagab.ui.gestor
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import br.com.fiap.inovagab.data.model.Project
 import br.com.fiap.inovagab.data.repository.ProjectRepository
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.ui.components.InfoRow
+import br.com.fiap.inovagab.ui.components.InovaCard
+import br.com.fiap.inovagab.ui.components.InovaDivider
+import br.com.fiap.inovagab.ui.components.InovaEmptyState
+import br.com.fiap.inovagab.ui.components.InovaErrorState
+import br.com.fiap.inovagab.ui.components.InovaIconButton
+import br.com.fiap.inovagab.ui.components.InovaListScreen
+import br.com.fiap.inovagab.ui.components.InovaLoading
+import br.com.fiap.inovagab.ui.components.InovaTopBar
+import br.com.fiap.inovagab.ui.components.MonoCounter
+import br.com.fiap.inovagab.ui.components.MonoLabel
+import br.com.fiap.inovagab.ui.components.ProjectStatusBadge
+import br.com.fiap.inovagab.ui.components.formatCurrencyBr
+import br.com.fiap.inovagab.ui.components.formatPercentBr
+import br.com.fiap.inovagab.ui.theme.InovaBlueLight
+import br.com.fiap.inovagab.ui.theme.InovaSpacing
+import br.com.fiap.inovagab.ui.theme.InovaStatusDone
+import br.com.fiap.inovagab.ui.theme.InovaStatusError
+import br.com.fiap.inovagab.ui.theme.InovaSurface
+import br.com.fiap.inovagab.ui.theme.InovaTextPrimary
+import br.com.fiap.inovagab.ui.theme.InovaTextSecondary
+import br.com.fiap.inovagab.ui.theme.InovaTextTertiary
+import br.com.fiap.inovagab.ui.theme.InovaType
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjetosGestorNewScreen(
     onBack: () -> Unit,
@@ -46,53 +79,50 @@ fun ProjetosGestorNewScreen(
 
     LaunchedEffect(Unit) { reload() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Projetos", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
-                    }
-                },
+    InovaListScreen(
+        header = {
+            InovaTopBar(
+                title = "Projetos",
+                onBack = onBack,
                 actions = {
-                    IconButton(onClick = onNovoProjeto) {
-                        Icon(Icons.Default.Add, contentDescription = "Novo Projeto", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBlue)
-            )
-        },
-        containerColor = LightBackground
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            when {
-                isLoading -> CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = PrimaryBlue
-                )
-                errorMsg != null -> Text(
-                    errorMsg!!,
-                    color = DangerRed,
-                    modifier = Modifier.align(Alignment.Center).padding(32.dp)
-                )
-                projects.isEmpty() -> Text(
-                    "Nenhum projeto encontrado.",
-                    color = TextSecondary,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
-                ) {
-                    items(projects) { project ->
-                        ProjectCardGestor(
-                            project = project,
-                            onEdit = { onEditarProjeto(project.id) },
-                            onDelete = { deleting = project }
+                    if (!isLoading && errorMsg == null) {
+                        MonoLabel(
+                            text = "${projects.size}",
+                            color = InovaTextTertiary,
+                            style = InovaType.mono
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
                     }
+                    InovaIconButton(
+                        icon = Icons.Outlined.Add,
+                        contentDescription = "Novo Projeto",
+                        onClick = onNovoProjeto
+                    )
+                }
+            )
+        }
+    ) {
+        when {
+            isLoading -> InovaLoading()
+            errorMsg != null -> InovaErrorState(errorMsg!!)
+            projects.isEmpty() -> InovaEmptyState("Nenhum projeto encontrado.")
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(InovaSpacing.card),
+                contentPadding = PaddingValues(
+                    start = InovaSpacing.screenHorizontal,
+                    end = InovaSpacing.screenHorizontal,
+                    top = InovaSpacing.screenVertical,
+                    bottom = 28.dp
+                )
+            ) {
+                itemsIndexed(projects) { index, project ->
+                    ProjectCardGestor(
+                        project = project,
+                        index = index + 1,
+                        onEdit = { onEditarProjeto(project.id) },
+                        onDelete = { deleting = project }
+                    )
                 }
             }
         }
@@ -101,117 +131,111 @@ fun ProjetosGestorNewScreen(
     deleting?.let { project ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("Excluir projeto") },
-            text = { Text("Deseja realmente excluir \"${project.name}\"?") },
+            containerColor = InovaSurface,
+            titleContentColor = InovaTextPrimary,
+            textContentColor = InovaTextSecondary,
+            title = { Text("Excluir projeto", style = InovaType.sectionTitle) },
+            text = {
+                Text("Deseja realmente excluir \"${project.name}\"?", style = InovaType.body)
+            },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
-                        repository.deleteProject(project.id)
-                            .onFailure { errorMsg = it.message }
+                        repository.deleteProject(project.id).onFailure { errorMsg = it.message }
                         deleting = null
                         reload()
                     }
-                }) { Text("Excluir", color = DangerRed) }
+                }) {
+                    Text("Excluir", style = InovaType.cardLabel, color = InovaStatusError)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { deleting = null }) { Text("Cancelar") }
+                TextButton(onClick = { deleting = null }) {
+                    Text("Cancelar", style = InovaType.cardLabel, color = InovaTextSecondary)
+                }
             }
         )
     }
 }
 
 @Composable
-private fun ProjectCardGestor(project: Project, onEdit: () -> Unit, onDelete: () -> Unit) {
-    val statusColor = projectStatusColor(project.status)
-    val statusLabel = projectStatusLabel(project.status)
+private fun ProjectCardGestor(
+    project: Project,
+    index: Int,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    InovaCard(accent = project.status == "EM_ANDAMENTO") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            MonoCounter(index = index)
+            ProjectStatusBadge(status = project.status)
+        }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    project.name,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f)
-                )
-                Surface(shape = RoundedCornerShape(20.dp), color = statusColor.copy(alpha = 0.15f)) {
-                    Text(
-                        statusLabel,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = statusColor,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            if (project.currentStage.isNotBlank()) {
-                Text("Etapa: ${project.currentStage}", fontSize = 12.sp, color = TextSecondary)
-            }
-            if (project.strategyTitle.isNotBlank()) {
-                Text("Estratégia: ${project.strategyTitle}", fontSize = 12.sp, color = AccentBlue)
-            }
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(text = project.name, style = InovaType.cardLabel, color = InovaTextPrimary)
+
+        Spacer(modifier = Modifier.height(12.dp))
+        InovaDivider()
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            InfoRow(label = "Etapa", value = project.currentStage)
+            InfoRow(label = "Estratégia", value = project.strategyTitle)
             if (project.investment > 0) {
-                Text("Investimento: %s".format(formatCurrencyBr(project.investment)), fontSize = 12.sp, color = TextSecondary)
+                InfoRow(label = "Investimento", value = formatCurrencyBr(project.investment))
             }
             if (project.financialReturn > 0) {
-                Text("Retorno: %s".format(formatCurrencyBr(project.financialReturn)), fontSize = 12.sp, color = TextSecondary)
+                InfoRow(label = "Retorno", value = formatCurrencyBr(project.financialReturn))
             }
-            if (project.investment > 0) {
+        }
+
+        if (project.investment > 0) {
+            Spacer(modifier = Modifier.height(14.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                MonoLabel(text = "ROI", color = InovaTextTertiary, style = InovaType.monoTiny)
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    "ROI: %.1f%%".format(project.roi),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (project.roi >= 0) SuccessGreen else DangerRed
+                    text = formatPercentBr(project.roi),
+                    style = InovaType.metricSmall,
+                    color = if (project.roi >= 0) InovaStatusDone else InovaStatusError
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Editar / resultados", fontSize = 12.sp)
-                }
-                TextButton(onClick = onDelete) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = null,
-                        tint = DangerRed,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Excluir", fontSize = 12.sp, color = DangerRed)
-                }
+        Spacer(modifier = Modifier.height(10.dp))
+        InovaDivider()
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TextButton(onClick = onEdit, modifier = Modifier.height(44.dp)) {
+                Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = null,
+                    tint = InovaBlueLight,
+                    modifier = Modifier.height(15.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Editar / resultados",
+                    style = InovaType.bodySmall,
+                    color = InovaBlueLight
+                )
+            }
+            TextButton(onClick = onDelete, modifier = Modifier.height(44.dp)) {
+                Icon(
+                    imageVector = Icons.Outlined.Delete,
+                    contentDescription = null,
+                    tint = InovaStatusError,
+                    modifier = Modifier.height(15.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = "Excluir", style = InovaType.bodySmall, color = InovaStatusError)
             }
         }
     }
 }
-
-internal fun projectStatusColor(status: String): Color = when (status) {
-    "PLANEJADO" -> PrimaryBlue
-    "EM_ANDAMENTO" -> WarningYellow
-    "CONCLUIDO" -> SuccessGreen
-    "CANCELADO" -> DangerRed
-    else -> TextSecondary
-}
-
-internal fun projectStatusLabel(status: String): String = when (status) {
-    "EM_ANDAMENTO" -> "Em andamento"
-    "CONCLUIDO" -> "Concluído"
-    "PLANEJADO" -> "Planejado"
-    "CANCELADO" -> "Cancelado"
-    else -> status
-}
-
-internal fun formatCurrencyBr(value: Double): String = "R$ %,.2f".format(value)

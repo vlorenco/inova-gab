@@ -1,31 +1,67 @@
 package br.com.fiap.inovagab.ui.operador
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import br.com.fiap.inovagab.data.model.Idea
 import br.com.fiap.inovagab.data.repository.IdeaRepository
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.ui.components.IdeaStatusBadge
+import br.com.fiap.inovagab.ui.components.InfoRow
+import br.com.fiap.inovagab.ui.components.InovaCard
+import br.com.fiap.inovagab.ui.components.InovaDivider
+import br.com.fiap.inovagab.ui.components.InovaEmptyState
+import br.com.fiap.inovagab.ui.components.InovaErrorState
+import br.com.fiap.inovagab.ui.components.InovaFormField
+import br.com.fiap.inovagab.ui.components.InovaIconButton
+import br.com.fiap.inovagab.ui.components.InovaListScreen
+import br.com.fiap.inovagab.ui.components.InovaLoading
+import br.com.fiap.inovagab.ui.components.InovaTag
+import br.com.fiap.inovagab.ui.components.InovaTopBar
+import br.com.fiap.inovagab.ui.components.MonoCounter
+import br.com.fiap.inovagab.ui.components.MonoLabel
+import br.com.fiap.inovagab.ui.theme.InovaBlueLight
+import br.com.fiap.inovagab.ui.theme.InovaSpacing
+import br.com.fiap.inovagab.ui.theme.InovaStatusDone
+import br.com.fiap.inovagab.ui.theme.InovaStatusError
+import br.com.fiap.inovagab.ui.theme.InovaSurface
+import br.com.fiap.inovagab.ui.theme.InovaTextPrimary
+import br.com.fiap.inovagab.ui.theme.InovaTextSecondary
+import br.com.fiap.inovagab.ui.theme.InovaTextTertiary
+import br.com.fiap.inovagab.ui.theme.InovaType
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MinhasIdeiasNewScreen(onBack: () -> Unit) {
+fun MinhasIdeiasNewScreen(
+    onBack: () -> Unit,
+    onNovaIdeia: () -> Unit = {}
+) {
     val repository = remember { IdeaRepository() }
     val scope = rememberCoroutineScope()
 
@@ -46,52 +82,57 @@ fun MinhasIdeiasNewScreen(onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { reload() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Minhas Ideias", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+    InovaListScreen(
+        header = {
+            InovaTopBar(
+                title = "Minhas Ideias",
+                onBack = onBack,
+                actions = {
+                    if (!isLoading) {
+                        MonoLabel(
+                            text = "${ideas.size}",
+                            color = InovaTextTertiary,
+                            style = InovaType.mono
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBlue)
+                    // Cadastrar sem precisar voltar para a home: é a ação que
+                    // mais se quer logo depois de olhar a própria lista.
+                    InovaIconButton(
+                        icon = Icons.Outlined.Add,
+                        contentDescription = "Cadastrar nova ideia",
+                        onClick = onNovaIdeia,
+                        tint = InovaBlueLight
+                    )
+                }
             )
-        },
-        containerColor = LightBackground
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            when {
-                isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PrimaryBlue)
-                errorMsg != null -> Text(
-                    errorMsg!!,
-                    color = DangerRed,
-                    modifier = Modifier.align(Alignment.Center).padding(32.dp)
+        }
+    ) {
+        when {
+            isLoading -> InovaLoading()
+            errorMsg != null -> InovaErrorState(errorMsg!!)
+            ideas.isEmpty() -> InovaEmptyState("Você ainda não cadastrou nenhuma ideia.")
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(InovaSpacing.card),
+                contentPadding = PaddingValues(
+                    start = InovaSpacing.screenHorizontal,
+                    end = InovaSpacing.screenHorizontal,
+                    top = InovaSpacing.screenVertical,
+                    bottom = 28.dp
                 )
-                ideas.isEmpty() -> Text(
-                    "Você ainda não cadastrou nenhuma ideia.",
-                    color = TextSecondary,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
-                    ) {
-                        feedback?.let { text ->
-                            item {
-                                Text(text, fontSize = 13.sp, color = SuccessGreen, fontWeight = FontWeight.Medium)
-                            }
-                        }
-                        items(ideas) { idea ->
-                            IdeaCard(
-                                idea = idea,
-                                onEdit = { editing = idea },
-                                onDelete = { deleting = idea }
-                            )
-                        }
+            ) {
+                feedback?.let { text ->
+                    item {
+                        Text(text = text, style = InovaType.bodySmall, color = InovaStatusDone)
                     }
+                }
+                itemsIndexed(ideas) { index, idea ->
+                    IdeaCard(
+                        idea = idea,
+                        index = index + 1,
+                        onEdit = { editing = idea },
+                        onDelete = { deleting = idea }
+                    )
                 }
             }
         }
@@ -115,8 +156,13 @@ fun MinhasIdeiasNewScreen(onBack: () -> Unit) {
     deleting?.let { idea ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("Excluir ideia") },
-            text = { Text("Deseja realmente excluir \"${idea.title}\"?") },
+            containerColor = InovaSurface,
+            titleContentColor = InovaTextPrimary,
+            textContentColor = InovaTextSecondary,
+            title = { Text("Excluir ideia", style = InovaType.sectionTitle) },
+            text = {
+                Text("Deseja realmente excluir \"${idea.title}\"?", style = InovaType.body)
+            },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
@@ -126,105 +172,108 @@ fun MinhasIdeiasNewScreen(onBack: () -> Unit) {
                         deleting = null
                     }
                 }) {
-                    Text("Excluir", color = DangerRed)
+                    Text("Excluir", style = InovaType.cardLabel, color = InovaStatusError)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleting = null }) { Text("Cancelar") }
+                TextButton(onClick = { deleting = null }) {
+                    Text("Cancelar", style = InovaType.cardLabel, color = InovaTextSecondary)
+                }
             }
         )
     }
 }
 
 @Composable
-private fun IdeaCard(idea: Idea, onEdit: () -> Unit, onDelete: () -> Unit) {
-    val statusColor = statusColorOf(idea.status)
-    val statusLabel = statusLabelOf(idea.status)
-
+private fun IdeaCard(
+    idea: Idea,
+    index: Int,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
     // Ideias já avaliadas pelo gestor ficam somente leitura, como no backend.
     val editable = idea.status == "EM_ANALISE" || idea.status == "PRIORIZADA"
+    val highlighted = idea.priority == "ALTA"
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    idea.title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f)
-                )
-                Surface(shape = RoundedCornerShape(20.dp), color = statusColor.copy(alpha = 0.15f)) {
-                    Text(
-                        statusLabel,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = statusColor,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+    InovaCard(accent = highlighted) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            MonoCounter(index = index)
+            IdeaStatusBadge(status = idea.status)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(text = idea.title, style = InovaType.cardLabel, color = InovaTextPrimary)
+
+        if (idea.area.isNotBlank() || idea.benefit.isNotBlank() || idea.strategyTitle.isNotBlank()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            InovaDivider()
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                InfoRow(label = "Área", value = idea.area)
+                InfoRow(label = "Benefício", value = idea.benefit)
+                InfoRow(label = "Estratégia", value = idea.strategyTitle)
+            }
+        }
+
+        if (idea.priority != "NORMAL" || idea.convertedToProject) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (idea.priority != "NORMAL") {
+                    InovaTag(
+                        text = "Prioridade: ${idea.priority}",
+                        color = if (idea.priority == "ALTA") InovaStatusError else InovaTextSecondary
                     )
                 }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            if (idea.area.isNotBlank()) {
-                Text("Área: ${idea.area}", fontSize = 12.sp, color = TextSecondary)
-            }
-            if (idea.benefit.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Benefício: ${idea.benefit}", fontSize = 12.sp, color = TextSecondary)
-            }
-            if (idea.strategyTitle.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Estratégia: ${idea.strategyTitle}", fontSize = 12.sp, color = AccentBlue)
-            }
-            if (idea.priority != "NORMAL") {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "Prioridade: ${idea.priority}",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (idea.priority == "ALTA") DangerRed else TextSecondary
-                )
-            }
-            if (idea.convertedToProject) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "Convertida em projeto",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = SuccessGreen
-                )
-            }
-
-            if (editable) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = onEdit) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Editar", fontSize = 12.sp)
-                    }
-                    TextButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = null,
-                            tint = DangerRed,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Excluir", fontSize = 12.sp, color = DangerRed)
-                    }
+                if (idea.convertedToProject) {
+                    InovaTag(text = "Convertida em projeto", color = InovaStatusDone)
                 }
             }
         }
+
+        if (editable) {
+            Spacer(modifier = Modifier.height(12.dp))
+            InovaDivider()
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                CardAction(
+                    text = "Editar",
+                    icon = Icons.Outlined.Edit,
+                    color = InovaBlueLight,
+                    onClick = onEdit
+                )
+                CardAction(
+                    text = "Excluir",
+                    icon = Icons.Outlined.Delete,
+                    color = InovaStatusError,
+                    onClick = onDelete
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CardAction(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit
+) {
+    TextButton(onClick = onClick, modifier = Modifier.height(44.dp)) {
+        androidx.compose.material3.Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.height(15.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = text, style = InovaType.bodySmall, color = color)
     }
 }
 
@@ -242,17 +291,32 @@ private fun EditIdeaDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Editar ideia", fontWeight = FontWeight.Bold) },
+        containerColor = InovaSurface,
+        titleContentColor = InovaTextPrimary,
+        textContentColor = InovaTextSecondary,
+        title = { Text("Editar ideia", style = InovaType.sectionTitle) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                DialogField("Título", title) { title = it }
-                DialogField("Problema", problem, minLines = 2) { problem = it }
-                DialogField("Solução", solution, minLines = 2) { solution = it }
-                DialogField("Área", area) { area = it }
-                DialogField("Benefício", benefit) { benefit = it }
+                InovaFormField(label = "Título", value = title, onValueChange = { title = it })
+                InovaFormField(
+                    label = "Problema",
+                    value = problem,
+                    onValueChange = { problem = it },
+                    singleLine = false,
+                    minLines = 2
+                )
+                InovaFormField(
+                    label = "Solução",
+                    value = solution,
+                    onValueChange = { solution = it },
+                    singleLine = false,
+                    minLines = 2
+                )
+                InovaFormField(label = "Área", value = area, onValueChange = { area = it })
+                InovaFormField(label = "Benefício", value = benefit, onValueChange = { benefit = it })
             }
         },
         confirmButton = {
@@ -260,43 +324,13 @@ private fun EditIdeaDialog(
                 onClick = { onConfirm(title, problem, solution, area, benefit) },
                 enabled = title.isNotBlank() && problem.isNotBlank() && solution.isNotBlank()
             ) {
-                Text("Salvar", color = PrimaryBlue, fontWeight = FontWeight.Bold)
+                Text("Salvar", style = InovaType.cardLabel, color = InovaBlueLight)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = TextSecondary) }
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", style = InovaType.cardLabel, color = InovaTextSecondary)
+            }
         }
     )
-}
-
-@Composable
-private fun DialogField(label: String, value: String, minLines: Int = 1, onValueChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, fontSize = 12.sp) },
-        minLines = minLines,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = PrimaryBlue,
-            unfocusedBorderColor = Color(0xFFE2E8F0)
-        )
-    )
-}
-
-internal fun statusColorOf(status: String): Color = when (status) {
-    "EM_ANALISE" -> WarningYellow
-    "PRIORIZADA" -> AccentBlue
-    "APROVADA" -> SuccessGreen
-    "REJEITADA" -> DangerRed
-    else -> TextSecondary
-}
-
-internal fun statusLabelOf(status: String): String = when (status) {
-    "EM_ANALISE" -> "Em análise"
-    "PRIORIZADA" -> "Priorizada"
-    "APROVADA" -> "Aprovada"
-    "REJEITADA" -> "Rejeitada"
-    else -> status
 }

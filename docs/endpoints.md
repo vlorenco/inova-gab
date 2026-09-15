@@ -42,8 +42,10 @@ Authorization: Bearer <token>
 | 24 | GET | `/api/dashboard/summary` | ✅ | **LIDERANCA** | Indicadores gerais + ROI |
 | 25 | GET | `/api/dashboard/strategies/{id}` | ✅ | **LIDERANCA** | Indicadores por orientação |
 | 26 | GET | `/api/dashboard/projects/{id}` | ✅ | **LIDERANCA** | Indicadores por projeto |
-| 27 | GET | `/api/ranking` | ✅ | todas | Operadores por pontos (desc) |
-| 28 | GET | `/api/ranking/me` | ✅ | todas | Minha posição e pontuação |
+| 27 | GET | `/api/dashboard/curation` | ✅ | GESTOR, LIDERANCA | Indicadores da curadoria (sem dado financeiro) |
+| 28 | GET | `/api/dashboard/my-performance` | ✅ | **OPERADOR** | Desempenho do próprio operador |
+| 29 | GET | `/api/ranking` | ✅ | todas | Operadores por pontos (desc) |
+| 30 | GET | `/api/ranking/me` | ✅ | todas | Minha posição e pontuação |
 
 ---
 
@@ -207,11 +209,16 @@ O histórico sobrevive à exclusão da orientação.
 > **Não existe campo `operatorId` no payload — de propósito.** O dono da ideia é
 > sempre extraído do JWT. O aplicativo não escolhe em nome de quem a ideia é criada.
 
+> **`strategyId` é obrigatório.** Toda ideia nasce vinculada a uma orientação
+> estratégica **vigente** (`active: true`). Um `strategyId` em branco resulta em
+> `400`; um que aponte para orientação desativada também.
+
 **201 CREATED** — devolve a ideia completa, já com `operatorId`, `operatorName`,
 `strategyTitle`, `status: "EM_ANALISE"` e `priority: "NORMAL"`.
 Efeito colateral: **+10 pontos** para o operador.
 
-**Erros:** `400` título/problema/solução em branco · `403` gestor ou liderança tentando criar · `404` `strategyId` inexistente.
+**Erros:** `400` título/problema/solução/`strategyId` em branco, ou orientação não
+vigente · `403` gestor ou liderança tentando criar · `404` `strategyId` inexistente.
 
 ---
 
@@ -277,7 +284,7 @@ Sem corpo de requisição. O backend monta o prompt com título, problema, solu�
   "recommendation": "ALTA_PRIORIDADE",
   "summary": "Reduz filas no patio e conversa direto com a orientacao de automacao.",
   "analyzedAt": "2026-09-14T18:48:19.843Z",
-  "model": "gemini-2.0-flash"
+  "model": "gemini-3.5-flash"
 }
 ```
 
@@ -348,7 +355,16 @@ Quando `ideaId` é informado:
 - a ideia é marcada com `convertedToProject = true` e o operador ganha **+100 pontos** (uma vez);
 - se `strategyId` não for informado, o projeto **herda a estratégia da ideia**.
 
-Validações: `name` obrigatório · valores financeiros `>= 0` · `productivityGain` entre 0 e 1000.
+> **Todo projeto termina vinculado a uma orientação estratégica vigente.** O campo
+> `strategyId` pode vir `null` no payload apenas quando há `ideaId`: nesse caso o
+> vínculo é herdado da ideia. Se, depois da herança, o projeto continuar sem
+> orientação — ou apontar para uma desativada — a API responde `400`.
+> Na **edição**, manter a orientação que o projeto já tinha é sempre permitido,
+> mesmo que a liderança a tenha desativado depois: desativar uma orientação não
+> trava a atualização de resultados do que já estava em andamento.
+
+Validações: `name` obrigatório · `strategyId` obrigatório (direto ou herdado da ideia)
+· valores financeiros `>= 0` · `productivityGain` entre 0 e 1000.
 `status` ∈ `PLANEJADO` · `EM_ANDAMENTO` · `CONCLUIDO` · `CANCELADO`.
 
 ---
@@ -358,24 +374,26 @@ Validações: `name` obrigatório · valores financeiros `>= 0` · `productivity
 **200 OK**
 ```json
 {
-  "totalProjects": 2,
-  "activeProjects": 1,
-  "completedProjects": 1,
-  "plannedProjects": 0,
-  "cancelledProjects": 0,
-  "totalInvestment": 18000.0,
-  "totalFinancialReturn": 46000.0,
-  "profit": 28000.0,
-  "roi": 155.55555555555557,
-  "totalCostReduction": 11000.0,
-  "averageProductivityGain": 16.5,
-  "totalIdeas": 2,
-  "approvedIdeas": 0,
-  "ideasUnderAnalysis": 1,
-  "totalStrategies": 4,
-  "activeStrategies": 3
+  "totalProjects": 12,
+  "activeProjects": 4,
+  "completedProjects": 5,
+  "plannedProjects": 2,
+  "cancelledProjects": 1,
+  "totalInvestment": 724000.0,
+  "totalFinancialReturn": 1685000.0,
+  "profit": 961000.0,
+  "roi": 132.73480662983425,
+  "totalCostReduction": 375000.0,
+  "averageProductivityGain": 14.333333333333334,
+  "totalIdeas": 30,
+  "approvedIdeas": 10,
+  "ideasUnderAnalysis": 14,
+  "totalStrategies": 7,
+  "activeStrategies": 6
 }
 ```
+
+> Os números acima são exatamente os da massa de demonstração recém-semeada.
 
 **Cálculo do ROI (feito no backend, não no app):**
 
@@ -416,21 +434,98 @@ já resolvendo os títulos da estratégia e da ideia de origem.
 
 ---
 
-### 27-28. Ranking
+### 27. `GET /api/dashboard/curation` — GESTOR e LIDERANCA
+
+Única rota de `/api/dashboard` que o gestor enxerga. É o recorte do trabalho de
+curadoria — quantas ideias estão em cada etapa, quantas viraram projeto e de
+onde elas vêm — e **não devolve investimento, retorno nem ROI**. Por isso sai da
+regra geral de `/api/dashboard/**`, que continua exclusiva da liderança.
+
+`topAreas` traz no máximo as 6 áreas com mais ideias, em ordem decrescente.
+
+**200 OK**
+```json
+{
+  "totalIdeas": 30,
+  "underAnalysis": 14,
+  "prioritized": 4,
+  "approved": 10,
+  "rejected": 2,
+  "convertedToProject": 6,
+  "withAiAnalysis": 11,
+  "totalProjects": 12,
+  "plannedProjects": 2,
+  "activeProjects": 4,
+  "completedProjects": 5,
+  "cancelledProjects": 1,
+  "contributingOperators": 6,
+  "topAreas": [
+    { "area": "Logistica", "total": 7 },
+    { "area": "Pessoas", "total": 5 },
+    { "area": "ESG", "total": 3 },
+    { "area": "Manutencao", "total": 3 },
+    { "area": "Seguranca", "total": 3 },
+    { "area": "Atendimento", "total": 2 }
+  ]
+}
+```
+
+**Erros:** `403` para OPERADOR.
+
+Usado pela tela **Resultados** do gestor. A taxa de aproveitamento que ela mostra
+(`approved / (approved + rejected)`) é derivada na tela, não vem do backend:
+ideias ainda em análise ficam de fora porque não foram decididas.
+
+---
+
+### 28. `GET /api/dashboard/my-performance` — somente OPERADOR
+
+Recorte do próprio operador, para a home dele. Junta em uma chamada o que antes
+exigia duas (`/api/ranking/me` e `/api/ideas/my`) e evita que a tela conte
+status de ideia na mão.
+
+Só devolve dados do dono do token. O único número de terceiros é `leaderPoints`,
+que já é público pelo ranking e serve para desenhar a barra de comparação.
+
+**200 OK**
+```json
+{
+  "totalIdeas": 6,
+  "underAnalysis": 3,
+  "prioritized": 1,
+  "approved": 2,
+  "rejected": 0,
+  "convertedToProject": 2,
+  "points": 360,
+  "position": 2,
+  "totalOperators": 6,
+  "leaderPoints": 410
+}
+```
+
+**Erros:** `403` para GESTOR e LIDERANCA.
+
+---
+
+### 29-30. Ranking
 
 `GET /api/ranking` — operadores ordenados por pontos, posição já numerada:
 
 ```json
 [
-  { "position": 1, "userId": "...", "name": "Operador Demo", "email": "operador@app.com", "points": 160 },
-  { "position": 2, "userId": "...", "name": "Ana Souza", "email": "ana.souza@app.com", "points": 0 }
+  { "position": 1, "userId": "...", "name": "Ana Souza", "email": "ana.souza@app.com", "points": 410 },
+  { "position": 2, "userId": "...", "name": "Operador Demo", "email": "operador@app.com", "points": 360 },
+  { "position": 3, "userId": "...", "name": "Carlos Nunes", "email": "carlos.nunes@app.com", "points": 250 },
+  { "position": 4, "userId": "...", "name": "Marcos Vieira", "email": "marcos.vieira@app.com", "points": 190 },
+  { "position": 5, "userId": "...", "name": "Juliana Prado", "email": "juliana.prado@app.com", "points": 100 },
+  { "position": 6, "userId": "...", "name": "Beatriz Lima", "email": "beatriz.lima@app.com", "points": 90 }
 ]
 ```
 
 `GET /api/ranking/me`:
 
 ```json
-{ "position": 1, "totalOperators": 2, "userId": "...", "name": "Operador Demo", "points": 160 }
+{ "position": 2, "totalOperators": 6, "userId": "...", "name": "Operador Demo", "points": 360 }
 ```
 
 Gestor e liderança recebem `position: 0` — não competem no ranking de operadores.

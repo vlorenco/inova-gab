@@ -94,7 +94,7 @@ class LiderancaViewModel : ViewModel() {
                 id = editingId.orEmpty(),
                 title = formTitle.trim(),
                 description = formDescription.trim(),
-                date = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")).format(Date()),
+                date = SimpleDateFormat("dd/MM/yyyy", Locale.forLanguageTag("pt-BR")).format(Date()),
                 category = formCategory.trim(),
                 campaign = formCampaign.trim(),
                 active = formActive

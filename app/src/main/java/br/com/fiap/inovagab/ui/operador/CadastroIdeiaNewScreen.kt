@@ -1,25 +1,50 @@
 package br.com.fiap.inovagab.ui.operador
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import br.com.fiap.inovagab.data.model.Strategy
 import br.com.fiap.inovagab.data.repository.IdeaRepository
 import br.com.fiap.inovagab.data.repository.StrategyRepository
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.ui.components.InovaCard
+import br.com.fiap.inovagab.ui.components.InovaDivider
+import br.com.fiap.inovagab.ui.components.InovaFormField
+import br.com.fiap.inovagab.ui.components.InovaInlineMessage
+import br.com.fiap.inovagab.ui.components.InovaPickerField
+import br.com.fiap.inovagab.ui.components.InovaPrimaryButton
+import br.com.fiap.inovagab.ui.components.InovaScreen
+import br.com.fiap.inovagab.ui.components.InovaTopBar
+import br.com.fiap.inovagab.ui.theme.InovaBlueLight
+import br.com.fiap.inovagab.ui.theme.InovaDurationDefault
+import br.com.fiap.inovagab.ui.theme.InovaTextPrimary
+import br.com.fiap.inovagab.ui.theme.InovaType
+import br.com.fiap.inovagab.ui.theme.inovaTween
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CadastroIdeiaNewScreen(onBack: () -> Unit) {
     var titulo by remember { mutableStateOf("") }
@@ -28,6 +53,7 @@ fun CadastroIdeiaNewScreen(onBack: () -> Unit) {
     var area by remember { mutableStateOf("") }
     var beneficio by remember { mutableStateOf("") }
     var estrategia by remember { mutableStateOf<Strategy?>(null) }
+    var pickerOpen by remember { mutableStateOf(false) }
 
     var estrategias by remember { mutableStateOf<List<Strategy>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
@@ -44,169 +70,155 @@ fun CadastroIdeiaNewScreen(onBack: () -> Unit) {
             .onSuccess { estrategias = it }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Nova Ideia", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBlue)
+    InovaScreen(
+        header = { InovaTopBar(title = "Nova Ideia", onBack = onBack) }
+    ) {
+        InovaCard(contentPadding = PaddingValues(18.dp)) {
+            InovaFormField(
+                label = "Título da ideia",
+                value = titulo,
+                onValueChange = { titulo = it }
             )
-        },
-        containerColor = LightBackground
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            FormField("Título da ideia", titulo, { titulo = it })
-            FormField("Problema encontrado", problema, { problema = it }, minLines = 3)
-            FormField("Solução sugerida", solucao, { solucao = it }, minLines = 3)
-            FormField("Área impactada", area, { area = it })
-            FormField("Benefício esperado", beneficio, { beneficio = it }, minLines = 2)
+            Spacer(modifier = Modifier.height(20.dp))
+            InovaFormField(
+                label = "Problema encontrado",
+                value = problema,
+                onValueChange = { problema = it },
+                singleLine = false,
+                minLines = 3
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            InovaFormField(
+                label = "Solução sugerida",
+                value = solucao,
+                onValueChange = { solucao = it },
+                singleLine = false,
+                minLines = 3
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            InovaFormField(
+                label = "Área impactada",
+                value = area,
+                onValueChange = { area = it }
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            InovaFormField(
+                label = "Benefício esperado",
+                value = beneficio,
+                onValueChange = { beneficio = it },
+                singleLine = false,
+                minLines = 2
+            )
+        }
 
-            StrategyPicker(
-                strategies = estrategias,
-                selected = estrategia,
-                onSelect = { estrategia = it }
+        InovaCard(contentPadding = PaddingValues(18.dp)) {
+            InovaPickerField(
+                label = "Orientação estratégica",
+                value = estrategia?.title ?: "Selecione uma orientação",
+                expanded = pickerOpen,
+                onClick = { pickerOpen = !pickerOpen }
             )
 
-            if (message != null) {
-                Text(
-                    text = message!!,
-                    fontSize = 13.sp,
-                    color = if (isError) DangerRed else SuccessGreen,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Button(
-                onClick = {
-                    if (titulo.isBlank() || problema.isBlank() || solucao.isBlank()) {
-                        message = "Preencha título, problema e solução."
-                        isError = true
-                        return@Button
-                    }
-                    coroutineScope.launch {
-                        isLoading = true
-                        message = null
-                        repository.createIdea(
-                            title = titulo.trim(),
-                            problem = problema.trim(),
-                            solution = solucao.trim(),
-                            area = area.trim(),
-                            benefit = beneficio.trim(),
-                            strategyId = estrategia?.id
-                        )
-                            .onSuccess {
-                                message = "Ideia cadastrada com sucesso! Você ganhou 10 pontos."
-                                isError = false
-                                titulo = ""; problema = ""; solucao = ""; area = ""; beneficio = ""
-                                estrategia = null
-                            }
-                            .onFailure {
-                                message = it.message ?: "Erro ao salvar a ideia."
-                                isError = true
-                            }
-                        isLoading = false
-                    }
-                },
-                enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            AnimatedVisibility(
+                visible = pickerOpen,
+                enter = fadeIn(inovaTween(InovaDurationDefault)) +
+                    expandVertically(inovaTween(InovaDurationDefault)),
+                exit = fadeOut(inovaTween(InovaDurationDefault)) +
+                    shrinkVertically(inovaTween(InovaDurationDefault))
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.5.dp)
-                } else {
-                    Text("Salvar Ideia", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Column(modifier = Modifier.padding(top = 14.dp)) {
+                    estrategias.forEachIndexed { index, option ->
+                        if (index > 0) InovaDivider()
+                        StrategyOption(
+                            title = option.title,
+                            selected = estrategia?.id == option.id,
+                            onClick = { estrategia = option; pickerOpen = false }
+                        )
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
-    }
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun StrategyPicker(
-    strategies: List<Strategy>,
-    selected: Strategy?,
-    onSelect: (Strategy?) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
+        if (message != null) {
+            InovaInlineMessage(message = message!!, isError = isError)
+        }
 
-    Column {
-        Text(
-            "Orientação estratégica (opcional)",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = TextPrimary
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            OutlinedTextField(
-                value = selected?.title ?: "Nenhuma",
-                onValueChange = {},
-                readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryBlue,
-                    unfocusedBorderColor = Color(0xFFE2E8F0)
-                )
-            )
-            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                DropdownMenuItem(
-                    text = { Text("Nenhuma") },
-                    onClick = { onSelect(null); expanded = false }
-                )
-                strategies.forEach { strategy ->
-                    DropdownMenuItem(
-                        text = { Text(strategy.title, fontSize = 13.sp) },
-                        onClick = { onSelect(strategy); expanded = false }
+        InovaPrimaryButton(
+            text = "Salvar Ideia",
+            enabled = !isLoading,
+            isLoading = isLoading,
+            onClick = {
+                if (titulo.isBlank() || problema.isBlank() || solucao.isBlank()) {
+                    message = "Preencha título, problema e solução."
+                    isError = true
+                    return@InovaPrimaryButton
+                }
+                // Vínculo obrigatório com a orientação vigente — o backend também
+                // recusa, mas avisar aqui evita uma ida ao servidor para nada.
+                val estrategiaSelecionada = estrategia
+                if (estrategiaSelecionada == null) {
+                    message = "Selecione a orientação estratégica da ideia."
+                    isError = true
+                    return@InovaPrimaryButton
+                }
+                coroutineScope.launch {
+                    isLoading = true
+                    message = null
+                    repository.createIdea(
+                        title = titulo.trim(),
+                        problem = problema.trim(),
+                        solution = solucao.trim(),
+                        area = area.trim(),
+                        benefit = beneficio.trim(),
+                        strategyId = estrategiaSelecionada.id
                     )
+                        .onSuccess {
+                            message = "Ideia cadastrada com sucesso! Você ganhou 10 pontos."
+                            isError = false
+                            titulo = ""; problema = ""; solucao = ""; area = ""; beneficio = ""
+                            estrategia = null
+                        }
+                        .onFailure {
+                            message = it.message ?: "Erro ao salvar a ideia."
+                            isError = true
+                        }
+                    isLoading = false
                 }
             }
-        }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
 @Composable
-private fun FormField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    minLines: Int = 1
+private fun StrategyOption(
+    title: String,
+    selected: Boolean,
+    onClick: () -> Unit
 ) {
-    Column {
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-        Spacer(modifier = Modifier.height(6.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            minLines = minLines,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PrimaryBlue,
-                unfocusedBorderColor = Color(0xFFE2E8F0)
-            )
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .heightIn(min = 44.dp)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = title,
+            style = InovaType.body,
+            color = InovaTextPrimary,
+            modifier = Modifier.weight(1f)
         )
+        if (selected) {
+            androidx.compose.material3.Icon(
+                imageVector = Icons.Outlined.Check,
+                contentDescription = null,
+                tint = InovaBlueLight,
+                modifier = Modifier.height(16.dp)
+            )
+        }
     }
 }

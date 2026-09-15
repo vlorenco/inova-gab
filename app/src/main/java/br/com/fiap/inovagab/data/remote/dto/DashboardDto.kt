@@ -52,3 +52,40 @@ data class ProjectDashboardDto(
     val productivityGain: Double = 0.0,
     val deadline: String? = null
 )
+
+/** GET /api/dashboard/curation — recorte do gestor, sem numero financeiro. */
+data class CurationSummaryDto(
+    val totalIdeas: Int = 0,
+    val underAnalysis: Int = 0,
+    val prioritized: Int = 0,
+    val approved: Int = 0,
+    val rejected: Int = 0,
+    val convertedToProject: Int = 0,
+    val withAiAnalysis: Int = 0,
+    val totalProjects: Int = 0,
+    val plannedProjects: Int = 0,
+    val activeProjects: Int = 0,
+    val completedProjects: Int = 0,
+    val cancelledProjects: Int = 0,
+    val contributingOperators: Int = 0,
+    val topAreas: List<AreaCountDto> = emptyList()
+)
+
+data class AreaCountDto(
+    val area: String = "",
+    val total: Int = 0
+)
+
+/** GET /api/dashboard/my-performance — recorte do proprio operador. */
+data class OperatorPerformanceDto(
+    val totalIdeas: Int = 0,
+    val underAnalysis: Int = 0,
+    val prioritized: Int = 0,
+    val approved: Int = 0,
+    val rejected: Int = 0,
+    val convertedToProject: Int = 0,
+    val points: Int = 0,
+    val position: Int = 0,
+    val totalOperators: Int = 0,
+    val leaderPoints: Int = 0
+)

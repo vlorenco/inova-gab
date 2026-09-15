@@ -1,25 +1,50 @@
 package br.com.fiap.inovagab.ui.lideranca
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import br.com.fiap.inovagab.data.model.Project
 import br.com.fiap.inovagab.data.repository.ProjectRepository
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.ui.components.InfoRow
+import br.com.fiap.inovagab.ui.components.InovaCard
+import br.com.fiap.inovagab.ui.components.InovaDivider
+import br.com.fiap.inovagab.ui.components.InovaEmptyState
+import br.com.fiap.inovagab.ui.components.InovaErrorState
+import br.com.fiap.inovagab.ui.components.InovaListScreen
+import br.com.fiap.inovagab.ui.components.InovaLoading
+import br.com.fiap.inovagab.ui.components.InovaTopBar
+import br.com.fiap.inovagab.ui.components.MonoCounter
+import br.com.fiap.inovagab.ui.components.formatCurrencyBr
+import br.com.fiap.inovagab.ui.components.formatPercentBr
+import br.com.fiap.inovagab.ui.components.MonoLabel
+import br.com.fiap.inovagab.ui.components.ProjectStatusBadge
+import br.com.fiap.inovagab.ui.theme.InovaSpacing
+import br.com.fiap.inovagab.ui.theme.InovaStatusDone
+import br.com.fiap.inovagab.ui.theme.InovaStatusError
+import br.com.fiap.inovagab.ui.theme.InovaTextPrimary
+import br.com.fiap.inovagab.ui.theme.InovaTextSecondary
+import br.com.fiap.inovagab.ui.theme.InovaTextTertiary
+import br.com.fiap.inovagab.ui.theme.InovaType
 
 /** A liderança apenas acompanha o andamento: o CRUD é do gestor. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaderProjectsScreen(
     onBackClick: () -> Unit
@@ -35,136 +60,112 @@ fun LeaderProjectsScreen(
             .onFailure { errorMsg = it.message; isLoading = false }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Projetos", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+    InovaListScreen(
+        header = {
+            InovaTopBar(
+                title = "Projetos",
+                onBack = onBackClick,
+                actions = {
+                    if (!isLoading && errorMsg == null) {
+                        MonoLabel(
+                            text = "${projects.size}",
+                            color = InovaTextTertiary,
+                            style = InovaType.mono
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBlue)
+                }
             )
-        },
-        containerColor = LightBackground
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            when {
-                isLoading -> CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = PrimaryBlue
-                )
-                errorMsg != null -> Text(
-                    errorMsg!!,
-                    color = DangerRed,
-                    fontSize = 14.sp,
-                    modifier = Modifier.align(Alignment.Center).padding(32.dp)
-                )
-                projects.isEmpty() -> Text(
-                    "Nenhum projeto encontrado.",
-                    color = TextSecondary,
-                    fontSize = 14.sp,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
-                ) {
-                    items(projects) { project -> ProjectCard(project) }
-                }
-            }
         }
-    }
-}
-
-@Composable
-private fun ProjectCard(project: Project) {
-    val statusColor = when (project.status) {
-        "PLANEJADO" -> PrimaryBlue
-        "EM_ANDAMENTO" -> WarningYellow
-        "CONCLUIDO" -> SuccessGreen
-        "CANCELADO" -> DangerRed
-        else -> TextSecondary
-    }
-    val statusLabel = when (project.status) {
-        "EM_ANDAMENTO" -> "Em andamento"
-        "CONCLUIDO" -> "Concluído"
-        "PLANEJADO" -> "Planejado"
-        "CANCELADO" -> "Cancelado"
-        else -> project.status
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    project.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f)
+        when {
+            isLoading -> InovaLoading()
+            errorMsg != null -> InovaErrorState(errorMsg!!)
+            projects.isEmpty() -> InovaEmptyState("Nenhum projeto encontrado.")
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(InovaSpacing.card),
+                contentPadding = PaddingValues(
+                    start = InovaSpacing.screenHorizontal,
+                    end = InovaSpacing.screenHorizontal,
+                    top = InovaSpacing.screenVertical,
+                    bottom = 28.dp
                 )
-                Surface(shape = RoundedCornerShape(20.dp), color = statusColor.copy(alpha = 0.15f)) {
-                    Text(
-                        statusLabel,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = statusColor,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
+            ) {
+                itemsIndexed(projects) { index, project ->
+                    ProjectCard(project = project, index = index + 1)
                 }
             }
-
-            if (project.description.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(project.description, fontSize = 13.sp, color = TextSecondary)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = Color(0xFFF1F5F9))
-            Spacer(modifier = Modifier.height(12.dp))
-
-            ProjectInfoRow("Orientação estratégica", project.strategyTitle)
-            ProjectInfoRow("Responsável", project.responsible)
-            ProjectInfoRow("Etapa atual", project.currentStage)
-            ProjectInfoRow("Investimento", formatCurrency(project.investment))
-            ProjectInfoRow("Retorno financeiro", formatCurrency(project.financialReturn))
-            ProjectInfoRow("Redução de custos", formatCurrency(project.costReduction))
-            ProjectInfoRow("Ganho de produtividade", formatPercent(project.productivityGain))
-            if (project.investment > 0) {
-                ProjectInfoRow("ROI (calculado pela API)", "%.1f%%".format(project.roi))
-            }
-            ProjectInfoRow("Prazo", project.deadline)
         }
     }
 }
 
 @Composable
-private fun ProjectInfoRow(label: String, value: String) {
-    if (value.isBlank()) return
-    Column(modifier = Modifier.padding(bottom = 8.dp)) {
-        Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
-        Text(value, fontSize = 13.sp, color = TextPrimary)
+private fun ProjectCard(project: Project, index: Int) {
+    InovaCard(accent = project.status == "EM_ANDAMENTO") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            MonoCounter(index = index)
+            ProjectStatusBadge(status = project.status)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(text = project.name, style = InovaType.cardLabel, color = InovaTextPrimary)
+
+        if (project.description.isNotBlank()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = project.description,
+                style = InovaType.bodySmall,
+                color = InovaTextSecondary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+        InovaDivider()
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            InfoRow(label = "Orientação estratégica", value = project.strategyTitle)
+            InfoRow(label = "Responsável", value = project.responsible)
+            InfoRow(label = "Etapa atual", value = project.currentStage)
+            // Valor zerado vira string vazia e o InfoRow se esconde sozinho.
+            InfoRow(label = "Investimento", value = currencyOrBlank(project.investment))
+            InfoRow(label = "Retorno financeiro", value = currencyOrBlank(project.financialReturn))
+            InfoRow(label = "Redução de custos", value = currencyOrBlank(project.costReduction))
+            InfoRow(
+                label = "Ganho de produtividade",
+                value = percentOrBlank(project.productivityGain)
+            )
+            InfoRow(label = "Prazo", value = project.deadline)
+        }
+
+        if (project.investment > 0) {
+            Spacer(modifier = Modifier.height(14.dp))
+            InovaDivider()
+            Spacer(modifier = Modifier.height(14.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                MonoLabel(
+                    text = "ROI (calculado pela API)",
+                    color = InovaTextTertiary,
+                    style = InovaType.monoTiny
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = formatPercentBr(project.roi),
+                    style = InovaType.metricSmall,
+                    color = if (project.roi >= 0) InovaStatusDone else InovaStatusError
+                )
+            }
+        }
     }
 }
 
-private fun formatCurrency(value: Double): String {
-    if (value == 0.0) return ""
-    return "R$ %,.2f".format(value)
-}
+private fun currencyOrBlank(value: Double): String =
+    if (value == 0.0) "" else formatCurrencyBr(value)
 
-private fun formatPercent(value: Double): String {
-    if (value == 0.0) return ""
-    return "%.1f%%".format(value)
-}
+private fun percentOrBlank(value: Double): String =
+    if (value == 0.0) "" else formatPercentBr(value)

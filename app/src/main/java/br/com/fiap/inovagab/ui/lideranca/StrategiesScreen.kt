@@ -1,30 +1,73 @@
 package br.com.fiap.inovagab.ui.lideranca
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import br.com.fiap.inovagab.data.model.Strategy
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.ui.components.InovaCard
+import br.com.fiap.inovagab.ui.components.InovaDivider
+import br.com.fiap.inovagab.ui.components.InovaEmptyState
+import br.com.fiap.inovagab.ui.components.InovaErrorState
+import br.com.fiap.inovagab.ui.components.InovaFilledButton
+import br.com.fiap.inovagab.ui.components.InovaFormField
+import br.com.fiap.inovagab.ui.components.InovaIconButton
+import br.com.fiap.inovagab.ui.components.InovaListScreen
+import br.com.fiap.inovagab.ui.components.InovaLoading
+import br.com.fiap.inovagab.ui.components.InovaOutlineButton
+import br.com.fiap.inovagab.ui.components.InovaSegmentedToggle
+import br.com.fiap.inovagab.ui.components.InovaSwitch
+import br.com.fiap.inovagab.ui.components.InovaTag
+import br.com.fiap.inovagab.ui.components.InovaTopBar
+import br.com.fiap.inovagab.ui.components.MonoCounter
+import br.com.fiap.inovagab.ui.components.MonoLabel
+import br.com.fiap.inovagab.ui.components.StatusBadge
+import br.com.fiap.inovagab.ui.theme.InovaBlueLight
+import br.com.fiap.inovagab.ui.theme.InovaDurationDefault
+import br.com.fiap.inovagab.ui.theme.InovaSpacing
+import br.com.fiap.inovagab.ui.theme.InovaStatusDone
+import br.com.fiap.inovagab.ui.theme.InovaStatusError
+import br.com.fiap.inovagab.ui.theme.InovaSurface
+import br.com.fiap.inovagab.ui.theme.InovaTextDisabled
+import br.com.fiap.inovagab.ui.theme.InovaTextPrimary
+import br.com.fiap.inovagab.ui.theme.InovaTextSecondary
+import br.com.fiap.inovagab.ui.theme.InovaTextTertiary
+import br.com.fiap.inovagab.ui.theme.InovaType
+import br.com.fiap.inovagab.ui.theme.inovaTween
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StrategiesScreen(
     onBack: () -> Unit,
@@ -34,80 +77,83 @@ fun StrategiesScreen(
 
     LaunchedEffect(Unit) { viewModel.loadStrategies() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Orientações Estratégicas", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.startCreate() }) {
-                        Icon(Icons.Default.Add, contentDescription = "Adicionar", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBlue)
-            )
-        },
-        containerColor = LightBackground
-    ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+    val filtered = viewModel.getFilteredStrategies()
 
-            TabRow(
-                selectedTabIndex = listOf("Todas", "Ativas", "Inativas").indexOf(viewModel.selectedTab),
-                containerColor = CardWhite,
-                contentColor = PrimaryBlue
-            ) {
-                listOf("Todas", "Ativas", "Inativas").forEach { tab ->
-                    Tab(
-                        selected = viewModel.selectedTab == tab,
-                        onClick = { viewModel.selectedTab = tab },
-                        text = { Text(tab, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+    InovaListScreen(
+        header = {
+            InovaTopBar(
+                title = "Orientações Estratégicas",
+                onBack = onBack,
+                actions = {
+                    InovaIconButton(
+                        icon = Icons.Outlined.Add,
+                        contentDescription = "Adicionar",
+                        onClick = { viewModel.startCreate() }
                     )
                 }
-            }
+            )
+        }
+    ) {
+        InovaSegmentedToggle(
+            options = listOf("Todas", "Ativas", "Inativas"),
+            selected = viewModel.selectedTab,
+            onSelect = { viewModel.selectedTab = it },
+            modifier = Modifier.padding(
+                start = InovaSpacing.screenHorizontal,
+                end = InovaSpacing.screenHorizontal,
+                top = InovaSpacing.screenVertical
+            )
+        )
 
-            if (viewModel.showForm) {
-                StrategyForm(viewModel)
-            }
+        AnimatedVisibility(
+            visible = viewModel.showForm,
+            enter = fadeIn(inovaTween(InovaDurationDefault)) +
+                expandVertically(inovaTween(InovaDurationDefault)),
+            exit = fadeOut(inovaTween(InovaDurationDefault)) +
+                shrinkVertically(inovaTween(InovaDurationDefault))
+        ) {
+            StrategyForm(
+                viewModel = viewModel,
+                modifier = Modifier.padding(
+                    start = InovaSpacing.screenHorizontal,
+                    end = InovaSpacing.screenHorizontal,
+                    top = InovaSpacing.block
+                )
+            )
+        }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    viewModel.isLoading && viewModel.strategies.isEmpty() -> CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = PrimaryBlue
-                    )
-                    viewModel.errorMessage != null && viewModel.strategies.isEmpty() -> Text(
-                        text = viewModel.errorMessage!!,
-                        color = DangerRed,
-                        fontSize = 14.sp,
-                        modifier = Modifier.align(Alignment.Center).padding(32.dp)
-                    )
-                    viewModel.getFilteredStrategies().isEmpty() -> Text(
-                        text = "Nenhuma orientação estratégica encontrada.",
-                        color = TextSecondary,
-                        fontSize = 14.sp,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                    else -> LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
-                    ) {
-                        viewModel.errorMessage?.let { error ->
-                            item { Text(error, color = DangerRed, fontSize = 13.sp) }
-                        }
-                        items(viewModel.getFilteredStrategies()) { strategy ->
-                            StrategyCard(
-                                strategy = strategy,
-                                onEdit = { viewModel.startEdit(strategy) },
-                                onHistory = { viewModel.openHistory(strategy) },
-                                onDelete = { showDeleteDialog = strategy }
-                            )
-                        }
+        when {
+            viewModel.isLoading && viewModel.strategies.isEmpty() -> InovaLoading()
+
+            viewModel.errorMessage != null && viewModel.strategies.isEmpty() ->
+                InovaErrorState(viewModel.errorMessage!!)
+
+            filtered.isEmpty() ->
+                InovaEmptyState("Nenhuma orientação estratégica encontrada.")
+
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(InovaSpacing.card),
+                contentPadding = PaddingValues(
+                    start = InovaSpacing.screenHorizontal,
+                    end = InovaSpacing.screenHorizontal,
+                    top = InovaSpacing.block,
+                    bottom = 28.dp
+                )
+            ) {
+                viewModel.errorMessage?.let { error ->
+                    item {
+                        Text(text = error, style = InovaType.bodySmall, color = InovaStatusError)
                     }
+                }
+                itemsIndexed(filtered) { index, strategy ->
+                    StrategyCard(
+                        strategy = strategy,
+                        index = index + 1,
+                        onEdit = { viewModel.startEdit(strategy) },
+                        onHistory = { viewModel.openHistory(strategy) },
+                        onDelete = { showDeleteDialog = strategy }
+                    )
                 }
             }
         }
@@ -116,16 +162,28 @@ fun StrategiesScreen(
     showDeleteDialog?.let { strategy ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
-            title = { Text("Excluir orientação") },
-            text = { Text("Deseja realmente excluir \"${strategy.title}\"? O histórico será preservado.") },
+            containerColor = InovaSurface,
+            titleContentColor = InovaTextPrimary,
+            textContentColor = InovaTextSecondary,
+            title = { Text("Excluir orientação", style = InovaType.sectionTitle) },
+            text = {
+                Text(
+                    "Deseja realmente excluir \"${strategy.title}\"? O histórico será preservado.",
+                    style = InovaType.body
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteStrategy(strategy.id)
                     showDeleteDialog = null
-                }) { Text("Excluir", color = DangerRed) }
+                }) {
+                    Text("Excluir", style = InovaType.cardLabel, color = InovaStatusError)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = null }) { Text("Cancelar") }
+                TextButton(onClick = { showDeleteDialog = null }) {
+                    Text("Cancelar", style = InovaType.cardLabel, color = InovaTextSecondary)
+                }
             }
         )
     }
@@ -136,183 +194,159 @@ fun StrategiesScreen(
 }
 
 @Composable
-private fun StrategyForm(viewModel: LiderancaViewModel) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                if (viewModel.editingId == null) "Nova orientação" else "Editar orientação",
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = TextPrimary
+private fun StrategyForm(viewModel: LiderancaViewModel, modifier: Modifier = Modifier) {
+    InovaCard(modifier = modifier, contentPadding = PaddingValues(18.dp)) {
+        Text(
+            text = if (viewModel.editingId == null) "Nova orientação" else "Editar orientação",
+            style = InovaType.sectionTitle,
+            color = InovaTextPrimary
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        InovaFormField(
+            label = "Título",
+            value = viewModel.formTitle,
+            onValueChange = { viewModel.formTitle = it }
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        InovaFormField(
+            label = "Descrição",
+            value = viewModel.formDescription,
+            onValueChange = { viewModel.formDescription = it },
+            singleLine = false,
+            minLines = 2
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        InovaFormField(
+            label = "Categoria",
+            value = viewModel.formCategory,
+            onValueChange = { viewModel.formCategory = it }
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        InovaFormField(
+            label = "Campanha",
+            value = viewModel.formCampaign,
+            onValueChange = { viewModel.formCampaign = it }
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            InovaSwitch(
+                checked = viewModel.formActive,
+                onCheckedChange = { viewModel.formActive = it }
             )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = if (viewModel.formActive) "Orientação vigente" else "Orientação inativa",
+                style = InovaType.bodySmall,
+                color = InovaTextSecondary
+            )
+        }
 
-            FormTextField("Título", viewModel.formTitle) { viewModel.formTitle = it }
-            FormTextField("Descrição", viewModel.formDescription, minLines = 2) {
-                viewModel.formDescription = it
-            }
-            FormTextField("Categoria", viewModel.formCategory) { viewModel.formCategory = it }
-            FormTextField("Campanha", viewModel.formCampaign) { viewModel.formCampaign = it }
+        Spacer(modifier = Modifier.height(20.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = viewModel.formActive,
-                    onCheckedChange = { viewModel.formActive = it },
-                    colors = SwitchDefaults.colors(checkedThumbColor = PrimaryBlue)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    if (viewModel.formActive) "Orientação vigente" else "Orientação inativa",
-                    fontSize = 13.sp,
-                    color = TextSecondary
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { viewModel.cancelForm() },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                ) { Text("Cancelar") }
-
-                Button(
-                    onClick = { viewModel.saveStrategy() },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-                ) { Text("Salvar") }
-            }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            InovaOutlineButton(
+                text = "Cancelar",
+                onClick = { viewModel.cancelForm() },
+                modifier = Modifier.weight(1f)
+            )
+            InovaFilledButton(
+                text = "Salvar",
+                onClick = { viewModel.saveStrategy() },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
 
 @Composable
-private fun FormTextField(
-    label: String,
-    value: String,
-    minLines: Int = 1,
-    onValueChange: (String) -> Unit
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = Modifier.fillMaxWidth(),
-        minLines = minLines,
-        singleLine = minLines == 1,
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = PrimaryBlue,
-            unfocusedBorderColor = Color(0xFFE2E8F0)
-        )
-    )
-}
-
-@Composable
 private fun StrategyCard(
     strategy: Strategy,
+    index: Int,
     onEdit: () -> Unit,
     onHistory: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = strategy.title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f)
+    InovaCard(accent = strategy.active) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            MonoCounter(index = index)
+            StatusBadge(
+                text = if (strategy.active) "Ativa" else "Inativa",
+                color = if (strategy.active) InovaStatusDone else InovaTextDisabled
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(text = strategy.title, style = InovaType.cardLabel, color = InovaTextPrimary)
+
+        if (strategy.description.isNotBlank()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = strategy.description,
+                style = InovaType.bodySmall,
+                color = InovaTextSecondary
+            )
+        }
+
+        if (strategy.category.isNotBlank() || strategy.campaign.isNotBlank()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (strategy.category.isNotBlank()) InovaTag(text = strategy.category)
+                if (strategy.campaign.isNotBlank()) {
+                    InovaTag(text = strategy.campaign, color = InovaTextTertiary)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        InovaDivider()
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            if (strategy.date.isNotBlank()) {
+                MonoLabel(
+                    text = strategy.date,
+                    color = InovaTextTertiary,
+                    style = InovaType.monoTiny
                 )
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = if (strategy.active) SuccessGreen.copy(alpha = 0.15f)
-                    else TextSecondary.copy(alpha = 0.15f)
-                ) {
-                    Text(
-                        text = if (strategy.active) "Ativa" else "Inativa",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (strategy.active) SuccessGreen else TextSecondary,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
+            } else {
+                Spacer(modifier = Modifier.width(1.dp))
             }
 
-            if (strategy.description.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(strategy.description, fontSize = 13.sp, color = TextSecondary)
-            }
-
-            if (strategy.category.isNotBlank() || strategy.campaign.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    listOf(strategy.category, strategy.campaign).filter { it.isNotBlank() }
-                        .joinToString(" • "),
-                    fontSize = 11.sp,
-                    color = AccentBlue,
-                    fontWeight = FontWeight.SemiBold
+            Row {
+                InovaIconButton(
+                    icon = Icons.Outlined.History,
+                    contentDescription = "Histórico",
+                    onClick = onHistory,
+                    tint = InovaBlueLight
                 )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (strategy.date.isNotBlank()) {
-                    Text(strategy.date, fontSize = 11.sp, color = TextSecondary)
-                } else {
-                    Spacer(modifier = Modifier.width(1.dp))
-                }
-                Row {
-                    IconButton(onClick = onHistory, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            Icons.Default.History,
-                            contentDescription = "Histórico",
-                            tint = AccentBlue,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "Editar",
-                            tint = PrimaryBlue,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Excluir",
-                            tint = DangerRed,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
+                InovaIconButton(
+                    icon = Icons.Outlined.Edit,
+                    contentDescription = "Editar",
+                    onClick = onEdit,
+                    tint = InovaTextSecondary
+                )
+                InovaIconButton(
+                    icon = Icons.Outlined.Delete,
+                    contentDescription = "Excluir",
+                    onClick = onDelete,
+                    tint = InovaStatusError
+                )
             }
         }
     }
@@ -322,53 +356,66 @@ private fun StrategyCard(
 private fun HistoryDialog(viewModel: LiderancaViewModel, strategy: Strategy) {
     AlertDialog(
         onDismissRequest = { viewModel.closeHistory() },
-        title = { Text("Histórico: ${strategy.title}", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+        containerColor = InovaSurface,
+        titleContentColor = InovaTextPrimary,
+        textContentColor = InovaTextSecondary,
+        title = {
+            Text("Histórico: ${strategy.title}", style = InovaType.sectionTitle)
+        },
         text = {
             when {
-                viewModel.historyLoading -> Box(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator(color = PrimaryBlue) }
+                viewModel.historyLoading -> androidx.compose.foundation.layout.Box(
+                    modifier = Modifier.fillMaxWidth().height(120.dp)
+                ) { InovaLoading() }
 
-                viewModel.history.isEmpty() -> Text("Nenhum registro de histórico.", fontSize = 13.sp)
+                viewModel.history.isEmpty() -> Text(
+                    "Nenhum registro de histórico.",
+                    style = InovaType.bodySmall
+                )
 
                 else -> Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     viewModel.history.forEach { entry ->
                         Column {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    entry.action,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryBlue
-                                )
-                                Text(
-                                    entry.changedAt.take(19).replace("T", " "),
-                                    fontSize = 11.sp,
-                                    color = TextSecondary
+                                StatusBadge(text = entry.action, color = InovaBlueLight)
+                                MonoLabel(
+                                    text = entry.changedAt.take(19).replace("T", " "),
+                                    color = InovaTextTertiary,
+                                    style = InovaType.monoTiny
                                 )
                             }
-                            Text(entry.title, fontSize = 13.sp, color = TextPrimary)
-                            if (entry.description.isNotBlank()) {
-                                Text(entry.description, fontSize = 11.sp, color = TextSecondary)
-                            }
-                            HorizontalDivider(
-                                modifier = Modifier.padding(top = 6.dp),
-                                color = Color(0xFFF1F5F9)
+                            Spacer(modifier = Modifier.height(7.dp))
+                            Text(
+                                text = entry.title,
+                                style = InovaType.cardLabel,
+                                color = InovaTextPrimary
                             )
+                            if (entry.description.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    text = entry.description,
+                                    style = InovaType.bodyTiny,
+                                    color = InovaTextSecondary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            InovaDivider()
                         }
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = { viewModel.closeHistory() }) { Text("Fechar") }
+            TextButton(onClick = { viewModel.closeHistory() }) {
+                Text("Fechar", style = InovaType.cardLabel, color = InovaBlueLight)
+            }
         }
     )
 }

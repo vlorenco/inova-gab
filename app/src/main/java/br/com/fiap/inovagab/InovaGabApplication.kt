@@ -8,7 +8,12 @@ import kotlinx.coroutines.launch
 
 /**
  * Inicializa a camada de rede (Retrofit + TokenManager) uma unica vez e
- * recarrega o JWT salvo, para que o app volte autenticado apos ser reaberto.
+ * recarrega o JWT salvo do DataStore para a copia em memoria que o
+ * AuthInterceptor le de forma sincrona.
+ *
+ * O app sempre abre pela tela de login: o token recarregado aqui nao pula essa
+ * etapa, ele so evita que uma chamada disparada logo apos o boot saia sem
+ * header Authorization.
  */
 class InovaGabApplication : Application() {
 

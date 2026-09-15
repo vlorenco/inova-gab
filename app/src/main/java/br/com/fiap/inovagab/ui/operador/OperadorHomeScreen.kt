@@ -1,24 +1,45 @@
 package br.com.fiap.inovagab.ui.operador
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import br.com.fiap.inovagab.ui.components.AppActionCard
-import br.com.fiap.inovagab.ui.components.AppTopBar
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.data.remote.dto.OperatorPerformanceDto
+import br.com.fiap.inovagab.data.repository.DashboardRepository
+import br.com.fiap.inovagab.ui.components.IncentiveBanner
+import br.com.fiap.inovagab.ui.components.InovaBottomNav
+import br.com.fiap.inovagab.ui.components.InovaErrorState
+import br.com.fiap.inovagab.ui.components.InovaHeader
+import br.com.fiap.inovagab.ui.components.InovaLoading
+import br.com.fiap.inovagab.ui.components.InovaNavItem
+import br.com.fiap.inovagab.ui.components.InovaScreen
+import br.com.fiap.inovagab.ui.components.InovaWideActionCard
 
+/**
+ * Home do operador.
+ *
+ * Responde "como eu estou indo" antes de oferecer qualquer botão. Minhas
+ * ideias e Orientações já são abas da barra inferior — e Orientações ainda
+ * aparecia duas vezes na tela antiga — então sobram só as duas ações que não
+ * têm aba: cadastrar e ver o ranking.
+ */
 @Composable
 fun OperadorHomeScreen(
     onProfileClick: () -> Unit = {},
@@ -29,165 +50,82 @@ fun OperadorHomeScreen(
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(containerColor = CardWhite, tonalElevation = 4.dp) {
-                listOf(
-                    Pair("Início", Icons.Default.Home),
-                    Pair("Ideias", Icons.Default.Lightbulb),
-                    Pair("Estratégias", Icons.Default.Flag),
-                    Pair("Perfil", Icons.Default.Person)
-                ).forEachIndexed { index, (label, icon) ->
-                    NavigationBarItem(
-                        selected = selectedTab == index,
-                        onClick = {
-                            selectedTab = index
-                            when (index) {
-                                1 -> onMinhasIdeiasClick()
-                                2 -> onOrientacoesClick()
-                                3 -> onProfileClick()
-                            }
-                        },
-                        icon = { Icon(icon, contentDescription = label) },
-                        label = { Text(label, fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryBlue,
-                            selectedTextColor = PrimaryBlue,
-                            indicatorColor = LightBackground
-                        )
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(LightBackground)
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-        ) {
-            AppTopBar(title = "Olá, Operador", subtitle = "Vamos inovar hoje?")
+    val repository = remember { DashboardRepository() }
+    var data by remember { mutableStateOf<OperatorPerformanceDto?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
 
-            Spacer(modifier = Modifier.height(20.dp))
+    LaunchedEffect(Unit) {
+        repository.getMyPerformance()
+            .onSuccess { data = it }
+            .onFailure { errorMsg = it.message }
+        isLoading = false
+    }
 
-            // Card principal — Orientações estratégicas
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = CardWhite),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Flag,
-                        contentDescription = null,
-                        tint = PrimaryBlue,
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Column {
-                        Text(
-                            text = "Orientações estratégicas",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "Confira as diretrizes disponíveis",
-                            fontSize = 13.sp,
-                            color = TextSecondary
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Ações rápidas",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                modifier = Modifier.padding(horizontal = 20.dp)
+    InovaScreen(
+        header = {
+            InovaHeader(
+                title = "Olá, Operador",
+                subtitle = "Vamos inovar hoje?"
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AppActionCard(
-                        icon = Icons.Default.Add,
-                        title = "Cadastrar nova ideia",
-                        subtitle = "Submeta sua inovação",
-                        modifier = Modifier.weight(1f),
-                        onClick = onCadastrarIdeiaClick
-                    )
-                    AppActionCard(
-                        icon = Icons.Default.Lightbulb,
-                        title = "Minhas ideias",
-                        subtitle = "Acompanhe o status",
-                        modifier = Modifier.weight(1f),
-                        onClick = onMinhasIdeiasClick
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AppActionCard(
-                        icon = Icons.Default.Flag,
-                        title = "Orientações estratégicas",
-                        subtitle = "Diretrizes do grupo",
-                        modifier = Modifier.weight(1f),
-                        onClick = onOrientacoesClick
-                    )
-                    AppActionCard(
-                        icon = Icons.Default.EmojiEvents,
-                        title = "Ranking de inovadores",
-                        subtitle = "Veja sua posição",
-                        modifier = Modifier.weight(1f),
-                        onClick = onRankingClick
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Card motivacional
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = PrimaryBlue)
-            ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Text(
-                        text = "Sua ideia pode transformar o futuro da Águia Branca!",
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
+        },
+        bottomBar = {
+            InovaBottomNav(
+                selectedIndex = selectedTab,
+                items = listOf(
+                    InovaNavItem("Início", Icons.Outlined.Home) { selectedTab = 0 },
+                    InovaNavItem("Ideias", Icons.Outlined.Lightbulb) {
+                        selectedTab = 1; onMinhasIdeiasClick()
+                    },
+                    InovaNavItem("Estratégias", Icons.Outlined.Flag) {
+                        selectedTab = 2; onOrientacoesClick()
+                    },
+                    InovaNavItem("Perfil", Icons.Outlined.Person) {
+                        selectedTab = 3; onProfileClick()
+                    }
+                )
+            )
         }
+    ) {
+        when {
+            isLoading -> Box(modifier = Modifier.fillMaxWidth().height(260.dp)) { InovaLoading() }
+
+            data == null -> Box(modifier = Modifier.fillMaxWidth().height(260.dp)) {
+                InovaErrorState(errorMsg ?: "Não foi possível carregar seu desempenho.")
+            }
+
+            else -> {
+                val info = data!!
+
+                PontuacaoPanel(info)
+                MinhasIdeiasPanel(info)
+                MinhaJornadaPanel(info)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        InovaWideActionCard(
+            icon = Icons.Outlined.Add,
+            title = "Cadastrar nova ideia",
+            subtitle = "Submeta sua inovação e ganhe 10 pontos",
+            primary = true,
+            onClick = onCadastrarIdeiaClick
+        )
+
+        InovaWideActionCard(
+            icon = Icons.Outlined.EmojiEvents,
+            title = "Ranking de inovadores",
+            subtitle = "Veja sua posição entre os colegas",
+            primary = false,
+            onClick = onRankingClick
+        )
+
+        IncentiveBanner(
+            text = "Sua ideia pode transformar o futuro da Águia Branca!",
+            icon = Icons.Outlined.Star
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }

@@ -1,24 +1,44 @@
 package br.com.fiap.inovagab.ui.operador
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import br.com.fiap.inovagab.data.model.Strategy
 import br.com.fiap.inovagab.data.repository.StrategyRepository
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.ui.components.IconTile
+import br.com.fiap.inovagab.ui.components.InovaCard
+import br.com.fiap.inovagab.ui.components.InovaEmptyState
+import br.com.fiap.inovagab.ui.components.InovaErrorState
+import br.com.fiap.inovagab.ui.components.InovaListScreen
+import br.com.fiap.inovagab.ui.components.InovaLoading
+import br.com.fiap.inovagab.ui.components.InovaTag
+import br.com.fiap.inovagab.ui.components.InovaTopBar
+import br.com.fiap.inovagab.ui.components.MonoCounter
+import br.com.fiap.inovagab.ui.components.MonoLabel
+import br.com.fiap.inovagab.ui.theme.InovaSpacing
+import br.com.fiap.inovagab.ui.theme.InovaTextPrimary
+import br.com.fiap.inovagab.ui.theme.InovaTextSecondary
+import br.com.fiap.inovagab.ui.theme.InovaTextTertiary
+import br.com.fiap.inovagab.ui.theme.InovaType
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrientacoesOperadorScreen(onBack: () -> Unit) {
     val repository = remember { StrategyRepository() }
@@ -33,72 +53,39 @@ fun OrientacoesOperadorScreen(onBack: () -> Unit) {
             .onFailure { errorMsg = it.message; isLoading = false }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Orientações Estratégicas", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+    InovaListScreen(
+        header = {
+            InovaTopBar(
+                title = "Orientações Estratégicas",
+                onBack = onBack,
+                actions = {
+                    if (!isLoading && errorMsg == null) {
+                        MonoLabel(
+                            text = "${strategies.size}",
+                            color = InovaTextTertiary,
+                            style = InovaType.mono
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBlue)
+                }
             )
-        },
-        containerColor = LightBackground
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            when {
-                isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PrimaryBlue)
-                errorMsg != null -> Text(
-                    errorMsg!!,
-                    color = DangerRed,
-                    modifier = Modifier.align(Alignment.Center).padding(32.dp)
+        }
+    ) {
+        when {
+            isLoading -> InovaLoading()
+            errorMsg != null -> InovaErrorState(errorMsg!!)
+            strategies.isEmpty() -> InovaEmptyState("Nenhuma orientação estratégica disponível.")
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(InovaSpacing.card),
+                contentPadding = PaddingValues(
+                    start = InovaSpacing.screenHorizontal,
+                    end = InovaSpacing.screenHorizontal,
+                    top = InovaSpacing.screenVertical,
+                    bottom = 28.dp
                 )
-                strategies.isEmpty() -> Text(
-                    "Nenhuma orientação estratégica disponível.",
-                    color = TextSecondary,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
-                    ) {
-                        items(strategies) { strategy ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = CardWhite),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        strategy.title,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextPrimary
-                                    )
-                                    if (strategy.description.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(strategy.description, fontSize = 13.sp, color = TextSecondary)
-                                    }
-                                    if (strategy.category.isNotBlank() || strategy.campaign.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(10.dp))
-                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            if (strategy.category.isNotBlank()) {
-                                                Tag(strategy.category, AccentBlue)
-                                            }
-                                            if (strategy.campaign.isNotBlank()) {
-                                                Tag(strategy.campaign, PrimaryBlue)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+            ) {
+                itemsIndexed(strategies) { index, strategy ->
+                    StrategyCard(strategy = strategy, index = index + 1)
                 }
             }
         }
@@ -106,14 +93,40 @@ fun OrientacoesOperadorScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun Tag(text: String, color: Color) {
-    Surface(shape = RoundedCornerShape(20.dp), color = color.copy(alpha = 0.12f)) {
-        Text(
-            text,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = color,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-        )
+private fun StrategyCard(strategy: Strategy, index: Int) {
+    InovaCard(accent = true) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconTile(icon = Icons.Outlined.Flag, contentDescription = null)
+            MonoCounter(index = index)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(text = strategy.title, style = InovaType.cardLabel, color = InovaTextPrimary)
+
+        if (strategy.description.isNotBlank()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = strategy.description,
+                style = InovaType.bodySmall,
+                color = InovaTextSecondary
+            )
+        }
+
+        if (strategy.category.isNotBlank() || strategy.campaign.isNotBlank()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (strategy.category.isNotBlank()) {
+                    InovaTag(text = strategy.category)
+                }
+                if (strategy.campaign.isNotBlank()) {
+                    InovaTag(text = strategy.campaign, color = InovaTextTertiary)
+                }
+            }
+        }
     }
 }

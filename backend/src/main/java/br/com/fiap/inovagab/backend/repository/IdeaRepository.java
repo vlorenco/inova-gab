@@ -16,6 +16,12 @@ public interface IdeaRepository extends MongoRepository<Idea, String> {
 
     List<Idea> findByStrategyId(String strategyId);
 
+    /**
+     * Usado pelo seed para reconhecer o que ja existe. Retorna lista porque o
+     * titulo nao tem indice unico - duas ideias homonimas nao podem quebrar o boot.
+     */
+    List<Idea> findByTitleIgnoreCase(String title);
+
     long countByStrategyId(String strategyId);
 
     long countByStatus(IdeaStatus status);

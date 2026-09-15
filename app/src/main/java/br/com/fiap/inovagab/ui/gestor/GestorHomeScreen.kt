@@ -1,159 +1,115 @@
 package br.com.fiap.inovagab.ui.gestor
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import br.com.fiap.inovagab.ui.components.AppActionCard
-import br.com.fiap.inovagab.ui.components.AppTopBar
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.data.remote.dto.CurationSummaryDto
+import br.com.fiap.inovagab.data.repository.DashboardRepository
+import br.com.fiap.inovagab.ui.components.InovaBottomNav
+import br.com.fiap.inovagab.ui.components.InovaErrorState
+import br.com.fiap.inovagab.ui.components.InovaHeader
+import br.com.fiap.inovagab.ui.components.InovaLoading
+import br.com.fiap.inovagab.ui.components.InovaNavItem
+import br.com.fiap.inovagab.ui.components.InovaScreen
+import br.com.fiap.inovagab.ui.components.InovaWideActionCard
 
+/**
+ * Home do gestor.
+ *
+ * É o próprio painel de curadoria, não um menu para chegar até ele. Avaliar
+ * ideias e gerenciar projetos já são abas da barra inferior, então repeti-los
+ * como cards seria dar dois caminhos para o mesmo lugar na mesma tela — sobra
+ * só Relatórios, que não tem aba.
+ */
 @Composable
 fun GestorHomeScreen(
     onProfileClick: () -> Unit = {},
     onIdeiasClick: () -> Unit = {},
-    onProjetosClick: () -> Unit = {}
+    onProjetosClick: () -> Unit = {},
+    onRelatoriosClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(containerColor = CardWhite, tonalElevation = 4.dp) {
-                listOf(
-                    Pair("Início", Icons.Default.Home),
-                    Pair("Ideias", Icons.Default.Lightbulb),
-                    Pair("Projetos", Icons.Default.AccountTree),
-                    Pair("Perfil", Icons.Default.Person)
-                ).forEachIndexed { index, (label, icon) ->
-                    NavigationBarItem(
-                        selected = selectedTab == index,
-                        onClick = {
-                            selectedTab = index
-                            when (index) {
-                                1 -> onIdeiasClick()
-                                2 -> onProjetosClick()
-                                3 -> onProfileClick()
-                            }
-                        },
-                        icon = { Icon(icon, contentDescription = label) },
-                        label = { Text(label, fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryBlue,
-                            selectedTextColor = PrimaryBlue,
-                            indicatorColor = LightBackground
-                        )
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(LightBackground)
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-        ) {
-            AppTopBar(title = "Olá, Gestor", subtitle = "Painel de Curadoria")
+    val repository = remember { DashboardRepository() }
+    var data by remember { mutableStateOf<CurationSummaryDto?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
 
-            Spacer(modifier = Modifier.height(20.dp))
+    LaunchedEffect(Unit) {
+        repository.getCuration()
+            .onSuccess { data = it }
+            .onFailure { errorMsg = it.message }
+        isLoading = false
+    }
 
-            // Card principal — Ideias pendentes
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = CardWhite),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Pending,
-                        contentDescription = null,
-                        tint = WarningYellow,
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Column {
-                        Text(
-                            text = "Ideias pendentes",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "Avalie as ideias dos operadores",
-                            fontSize = 13.sp,
-                            color = TextSecondary
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Ações rápidas",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                modifier = Modifier.padding(horizontal = 20.dp)
+    InovaScreen(
+        header = {
+            InovaHeader(
+                title = "Olá, Gestor",
+                subtitle = "Painel de Curadoria"
             )
+        },
+        bottomBar = {
+            InovaBottomNav(
+                selectedIndex = selectedTab,
+                items = listOf(
+                    InovaNavItem("Início", Icons.Outlined.Home) { selectedTab = 0 },
+                    InovaNavItem("Ideias", Icons.Outlined.Lightbulb) {
+                        selectedTab = 1; onIdeiasClick()
+                    },
+                    InovaNavItem("Projetos", Icons.Outlined.AccountTree) {
+                        selectedTab = 2; onProjetosClick()
+                    },
+                    InovaNavItem("Perfil", Icons.Outlined.Person) {
+                        selectedTab = 3; onProfileClick()
+                    }
+                )
+            )
+        }
+    ) {
+        when {
+            isLoading -> Box(modifier = Modifier.fillMaxWidth().height(280.dp)) { InovaLoading() }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AppActionCard(
-                        icon = Icons.Default.RateReview,
-                        title = "Avaliar ideias",
-                        subtitle = "Ideias pendentes",
-                        modifier = Modifier.weight(1f),
-                        onClick = onIdeiasClick
-                    )
-                    AppActionCard(
-                        icon = Icons.Default.AccountTree,
-                        title = "Projetos",
-                        subtitle = "Gerenciar projetos",
-                        modifier = Modifier.weight(1f),
-                        onClick = onProjetosClick
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AppActionCard(
-                        icon = Icons.Default.BarChart,
-                        title = "Resultados",
-                        subtitle = "Métricas do time",
-                        modifier = Modifier.weight(1f)
-                    )
-                    AppActionCard(
-                        icon = Icons.Default.Description,
-                        title = "Relatórios",
-                        subtitle = "Exportar dados",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+            data == null -> Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
+                InovaErrorState(errorMsg ?: "Não foi possível carregar os resultados.")
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            else -> {
+                val info = data!!
+
+                AproveitamentoPanel(info)
+                CuradoriaPanel(info)
+                ProjetosGeradosPanel(info)
+                AreasPanel(info)
+            }
         }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        InovaWideActionCard(
+            icon = Icons.Outlined.Description,
+            title = "Relatórios",
+            subtitle = "Exportar ideias, projetos e ranking em CSV",
+            primary = true,
+            onClick = onRelatoriosClick
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }

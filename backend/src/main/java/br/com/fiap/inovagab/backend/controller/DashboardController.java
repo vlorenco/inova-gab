@@ -1,8 +1,11 @@
 package br.com.fiap.inovagab.backend.controller;
 
+import br.com.fiap.inovagab.backend.dto.dashboard.CurationSummaryResponse;
 import br.com.fiap.inovagab.backend.dto.dashboard.DashboardSummaryResponse;
+import br.com.fiap.inovagab.backend.dto.dashboard.OperatorPerformanceResponse;
 import br.com.fiap.inovagab.backend.dto.dashboard.ProjectDashboardResponse;
 import br.com.fiap.inovagab.backend.dto.dashboard.StrategyDashboardResponse;
+import br.com.fiap.inovagab.backend.security.CurrentUser;
 import br.com.fiap.inovagab.backend.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -16,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/dashboard")
 @SecurityRequirement(name = "bearerAuth")
-@Tag(name = "Dashboard", description = "Indicadores consolidados - exclusivo da LIDERANCA")
+@Tag(name = "Dashboard", description = "Indicadores consolidados - LIDERANCA, exceto /curation que o GESTOR tambem le")
 public class DashboardController {
 
     private final DashboardService dashboardService;
@@ -29,6 +32,18 @@ public class DashboardController {
     @Operation(summary = "Indicadores gerais do portfolio, incluindo ROI")
     public ResponseEntity<DashboardSummaryResponse> summary() {
         return ResponseEntity.ok(dashboardService.summary());
+    }
+
+    @GetMapping("/my-performance")
+    @Operation(summary = "Desempenho do proprio operador - somente OPERADOR")
+    public ResponseEntity<OperatorPerformanceResponse> myPerformance() {
+        return ResponseEntity.ok(dashboardService.myPerformance(CurrentUser.require().getId()));
+    }
+
+    @GetMapping("/curation")
+    @Operation(summary = "Indicadores da curadoria - GESTOR e LIDERANCA")
+    public ResponseEntity<CurationSummaryResponse> curation() {
+        return ResponseEntity.ok(dashboardService.curation());
     }
 
     @GetMapping("/strategies/{strategyId}")

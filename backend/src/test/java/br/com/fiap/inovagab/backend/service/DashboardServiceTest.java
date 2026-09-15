@@ -37,13 +37,15 @@ class DashboardServiceTest {
     private StrategyRepository strategyRepository;
     @Mock
     private StrategyService strategyService;
+    @Mock
+    private RankingService rankingService;
 
     private DashboardService dashboardService;
 
     @BeforeEach
     void setUp() {
         dashboardService = new DashboardService(
-                projectRepository, ideaRepository, strategyRepository, strategyService);
+                projectRepository, ideaRepository, strategyRepository, strategyService, rankingService);
     }
 
     private Project project(ProjectStatus status, double investment, double financialReturn,

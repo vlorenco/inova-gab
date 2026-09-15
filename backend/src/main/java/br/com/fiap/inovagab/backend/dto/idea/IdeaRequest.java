@@ -27,6 +27,8 @@ public record IdeaRequest(
         @Size(max = 1000, message = "Beneficio deve ter no maximo 1000 caracteres.")
         String benefit,
 
+        /** Obrigatorio: toda ideia nasce ligada a uma orientacao estrategica vigente. */
+        @NotBlank(message = "Vincule a ideia a uma orientacao estrategica.")
         String strategyId
 ) {
 }

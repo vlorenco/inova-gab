@@ -155,8 +155,10 @@ curl http://localhost:8080/api/health
 # {"service":"inovagab-backend","status":"UP","timestamp":"..."}
 ```
 
-No primeiro boot os usuários de demonstração e um seed mínimo são criados.
-O seed é **idempotente**: reiniciar não duplica nada.
+No primeiro boot os usuários de demonstração e a massa de exemplo são criados
+(8 usuários, 7 orientações estratégicas, 30 ideias e 12 projetos). O seed é
+**idempotente**: reiniciar não duplica nada e não sobrescreve o que você editar
+pelo app.
 
 ### 5.4 Android
 
@@ -186,10 +188,15 @@ Senha de todos: **`123456`**
 | `operador@app.com` | OPERADOR | Card "Operador" na tela de login |
 | `gestor@app.com` | GESTOR | Card "Gestor" |
 | `lider@app.com` | LIDERANCA | Card "Liderança" |
-| `ana.souza@app.com` | OPERADOR | Segundo operador, para demonstrar o ranking |
+| `ana.souza@app.com` | OPERADOR | Líder do ranking — entre por aqui para ver o 1º lugar |
+| `carlos.nunes@app.com` | OPERADOR | 3º no ranking |
+| `marcos.vieira@app.com` | OPERADOR | 4º no ranking |
+| `juliana.prado@app.com` | OPERADOR | 5º no ranking |
+| `beatriz.lima@app.com` | OPERADOR | 6º no ranking |
 
 Os três cards de acesso rápido da tela de login continuam funcionando: eles
-preenchem o formulário e chamam `POST /api/auth/login` de verdade.
+preenchem o formulário e chamam `POST /api/auth/login` de verdade. Os demais
+operadores existem para dar corpo ao ranking e são acessados digitando o e-mail.
 
 ---
 
@@ -231,7 +238,7 @@ hosts de desenvolvimento listados nele.
 
 ```bash
 export GEMINI_API_KEY="sua-chave"
-export GEMINI_MODEL="gemini-2.0-flash"   # opcional: o modelo é configurável
+export GEMINI_MODEL="gemini-3.5-flash"   # opcional: o modelo é configurável
 ```
 
 3. No app, logue como **gestor**, abra uma ideia e toque em **"Analisar com IA"**.
@@ -246,28 +253,36 @@ Detalhes da validação da resposta da IA: [`backend/README.md`](backend/README.
 
 ## 9. Testar cada perfil
 
+Em todos os perfis a **tela de início já é o painel de indicadores** daquele
+perfil — não há um menu que leva a outra tela para ver os números. O que a
+barra inferior alcança não aparece repetido como card.
+
 ### Operador — `operador@app.com`
 
-1. **Orientações estratégicas** → lista as orientações vigentes publicadas pela liderança (`GET /api/strategies?activeOnly=true`).
-2. **Cadastrar nova ideia** → preencha e escolha uma orientação no seletor. Ao salvar: **+10 pontos**.
-3. **Minhas ideias** → mostra **apenas as suas** (`GET /api/ideas/my`). Enquanto a ideia não é avaliada, dá para **editar** e **excluir**.
-4. **Ranking de inovadores** → sua posição e pontuação, vindas do backend.
-5. **Perfil** → nome, e-mail, perfil e pontos, de `GET /api/auth/me`.
+1. **Início** → desempenho pessoal (`GET /api/dashboard/my-performance`): pontos, posição no ranking, distância para o líder, situação das próprias ideias e o funil enviadas → aprovadas → viraram projeto, com a regra de pontuação à vista.
+2. **Cadastrar nova ideia** → preencha e escolha uma orientação no seletor. Ao salvar: **+10 pontos**. Também acessível pelo **+** no topo de *Minhas Ideias*.
+3. **Ideias** (aba) → mostra **apenas as suas** (`GET /api/ideas/my`). Enquanto a ideia não é avaliada, dá para **editar** e **excluir**.
+4. **Estratégias** (aba) → orientações vigentes publicadas pela liderança (`GET /api/strategies?activeOnly=true`).
+5. **Ranking de inovadores** → sua posição e pontuação, vindas do backend.
+6. **Perfil** (aba) → nome, e-mail, perfil e pontos, de `GET /api/auth/me`.
 
 ### Gestor — `gestor@app.com`
 
-1. **Avaliar ideias** → todas as ideias, com abas de filtro por status (o filtro é feito no backend).
-2. Abra uma ideia → **Priorizar**, **Aprovar** ou **Reprovar**.
-3. **Analisar com IA** → notas de impacto, viabilidade, inovação e alinhamento estratégico, com recomendação e justificativa. A análise fica salva na ideia.
-4. Em uma ideia **aprovada** → **Criar Projeto** (a ideia é marcada como convertida e o operador ganha **+100 pontos**).
-5. **Projetos** → criar, editar e registrar resultados (investimento, retorno, redução de custos, produtividade, etapa, prazo).
+1. **Início** → painel de curadoria (`GET /api/dashboard/curation`): taxa de aproveitamento, fila por status, funil de projetos gerados e ideias por área. Não expõe nenhum dado financeiro.
+2. **Ideias** (aba) → todas as ideias, com abas de filtro por status (o filtro é feito no backend).
+3. Abra uma ideia → **Priorizar**, **Aprovar** ou **Reprovar**.
+4. **Analisar com IA** → notas de impacto, viabilidade, inovação e alinhamento estratégico, com recomendação e justificativa. A análise fica salva na ideia.
+5. Em uma ideia **aprovada** → **Criar Projeto** (a ideia é marcada como convertida e o operador ganha **+100 pontos**).
+6. **Projetos** (aba) → criar, editar e registrar resultados (investimento, retorno, redução de custos, produtividade, etapa, prazo).
+7. **Relatórios** → exporta ideias, projetos e ranking em CSV (`;` e UTF-8, abre no Excel em português) pelo menu de compartilhamento do Android.
 
 ### Liderança — `lider@app.com`
 
-1. **Orientações estratégicas** → CRUD completo: criar, editar, ativar/desativar e excluir.
-2. Ícone de **histórico** em cada card → todas as versões, com ação (`CRIADA`, `ATUALIZADA`, `DESATIVADA`, `EXCLUIDA`), data e autor.
-3. **Dashboard** → ROI, retorno, investimento, lucro, redução de custos, produtividade média, gráfico de projetos por status e funil de inovação — **tudo calculado no backend**.
-4. **Projetos** → acompanhamento em modo leitura.
+1. **Início** → dashboard completo (`GET /api/dashboard/summary`): ROI, investimento, retorno, lucro, redução de custos, produtividade média, projetos por status e funil de inovação — **tudo calculado no backend**.
+2. **Indicadores** → o mesmo recorte por orientação estratégica (`GET /api/dashboard/strategies/{id}`), com ROI comparável entre as orientações.
+3. **Estratégia** (aba) → CRUD completo: criar, editar, ativar/desativar e excluir.
+4. Ícone de **histórico** em cada card → todas as versões, com ação (`CRIADA`, `ATUALIZADA`, `DESATIVADA`, `EXCLUIDA`), data e autor.
+5. **Projetos** (aba) → acompanhamento em modo leitura.
 
 ### Verificando que a autorização é real
 
@@ -309,8 +324,14 @@ Swagger UI (com a API rodando): **http://localhost:8080/swagger-ui.html**
 | POST | `/api/ideas/{id}/ai-analysis` | **GESTOR** |
 | GET | `/api/projects[/{id}]` | GESTOR · LIDERANCA |
 | POST/PUT/DELETE | `/api/projects[/{id}]` | **GESTOR** |
-| GET | `/api/dashboard/**` | **LIDERANCA** |
+| GET | `/api/dashboard/summary` · `/strategies/{id}` · `/projects/{id}` | **LIDERANCA** |
+| GET | `/api/dashboard/curation` | GESTOR · LIDERANCA |
+| GET | `/api/dashboard/my-performance` | **OPERADOR** |
 | GET | `/api/ranking` · `/api/ranking/me` | todas |
+
+`/api/dashboard` tem um recorte por perfil. Só o da liderança expõe
+investimento, retorno e ROI; o do gestor devolve apenas contagens da curadoria
+e o do operador apenas os números do dono do token.
 
 ### Como a autorização é garantida
 
@@ -363,7 +384,7 @@ cd backend
 ./mvnw test
 ```
 
-61 testes, todos passando. Cobrem login válido e inválido, endpoint protegido sem
+64 testes, todos passando. Cobrem login válido e inválido, endpoint protegido sem
 token, operador tentando acessar endpoints de liderança, CRUD de estratégia com
 histórico, operador criando ideia, operador tentando manipular ideia de outro,
 gestor aprovando ideia, criação de projeto a partir de ideia aprovada, cálculo do
@@ -422,4 +443,4 @@ inova-gab/
 | Modelos duplicados (`Idea`/`Ideia`, `Project`/`Projeto`, `Strategy`/`Estrategia`) | Um modelo por conceito em `data/model` |
 | — | Análise de ideias por IA (Google Gemini), com a chave só no backend |
 | — | Histórico versionado das orientações estratégicas |
-| — | 61 testes automatizados no backend |
+| — | 64 testes automatizados no backend |

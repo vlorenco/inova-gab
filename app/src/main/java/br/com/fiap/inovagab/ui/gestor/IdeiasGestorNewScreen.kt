@@ -1,23 +1,49 @@
 package br.com.fiap.inovagab.ui.gestor
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import br.com.fiap.inovagab.data.model.Idea
 import br.com.fiap.inovagab.data.repository.IdeaRepository
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.ui.components.IdeaStatusBadge
+import br.com.fiap.inovagab.ui.components.InfoRow
+import br.com.fiap.inovagab.ui.components.InovaCard
+import br.com.fiap.inovagab.ui.components.InovaDivider
+import br.com.fiap.inovagab.ui.components.InovaEmptyState
+import br.com.fiap.inovagab.ui.components.InovaErrorState
+import br.com.fiap.inovagab.ui.components.InovaListScreen
+import br.com.fiap.inovagab.ui.components.InovaLoading
+import br.com.fiap.inovagab.ui.components.InovaSegmentedToggle
+import br.com.fiap.inovagab.ui.components.InovaTag
+import br.com.fiap.inovagab.ui.components.InovaTopBar
+import br.com.fiap.inovagab.ui.components.MonoCounter
+import br.com.fiap.inovagab.ui.components.MonoLabel
+import br.com.fiap.inovagab.ui.components.StatusBadge
+import br.com.fiap.inovagab.ui.components.scoreColor
+import br.com.fiap.inovagab.ui.theme.InovaSpacing
+import br.com.fiap.inovagab.ui.theme.InovaStatusError
+import br.com.fiap.inovagab.ui.theme.InovaTextPrimary
+import br.com.fiap.inovagab.ui.theme.InovaTextSecondary
+import br.com.fiap.inovagab.ui.theme.InovaTextTertiary
+import br.com.fiap.inovagab.ui.theme.InovaType
 
 /** Filtro visual -> valor de status enviado ao backend. */
 private val FILTERS = listOf(
@@ -28,7 +54,6 @@ private val FILTERS = listOf(
     "Rejeitadas" to "REJEITADA"
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IdeiasGestorNewScreen(
     onBack: () -> Unit,
@@ -50,61 +75,54 @@ fun IdeiasGestorNewScreen(
         isLoading = false
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Avaliar Ideias", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+    InovaListScreen(
+        header = {
+            InovaTopBar(
+                title = "Avaliar Ideias",
+                onBack = onBack,
+                actions = {
+                    if (!isLoading && errorMsg == null) {
+                        MonoLabel(
+                            text = "${ideas.size}",
+                            color = InovaTextTertiary,
+                            style = InovaType.mono
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBlue)
-            )
-        },
-        containerColor = LightBackground
-    ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            ScrollableTabRow(
-                selectedTabIndex = FILTERS.indexOfFirst { it.first == selectedFilter }.coerceAtLeast(0),
-                containerColor = CardWhite,
-                contentColor = PrimaryBlue,
-                edgePadding = 16.dp
-            ) {
-                FILTERS.forEach { (label, _) ->
-                    Tab(
-                        selected = selectedFilter == label,
-                        onClick = { selectedFilter = label },
-                        text = { Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
-                    )
                 }
-            }
+            )
+        }
+    ) {
+        InovaSegmentedToggle(
+            options = FILTERS.map { it.first },
+            selected = selectedFilter,
+            onSelect = { selectedFilter = it },
+            modifier = Modifier.padding(
+                start = InovaSpacing.screenHorizontal,
+                end = InovaSpacing.screenHorizontal,
+                top = InovaSpacing.screenVertical
+            )
+        )
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    isLoading -> CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = PrimaryBlue
+        when {
+            isLoading -> InovaLoading()
+            errorMsg != null -> InovaErrorState(errorMsg!!)
+            ideas.isEmpty() -> InovaEmptyState("Nenhuma ideia encontrada.")
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(InovaSpacing.card),
+                contentPadding = PaddingValues(
+                    start = InovaSpacing.screenHorizontal,
+                    end = InovaSpacing.screenHorizontal,
+                    top = InovaSpacing.block,
+                    bottom = 28.dp
+                )
+            ) {
+                itemsIndexed(ideas) { index, idea ->
+                    GestorIdeaCard(
+                        idea = idea,
+                        index = index + 1,
+                        onClick = { onIdeiaClick(idea.id) }
                     )
-                    errorMsg != null -> Text(
-                        errorMsg!!,
-                        color = DangerRed,
-                        modifier = Modifier.align(Alignment.Center).padding(32.dp)
-                    )
-                    ideas.isEmpty() -> Text(
-                        "Nenhuma ideia encontrada.",
-                        color = TextSecondary,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                    else -> LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
-                    ) {
-                        items(ideas) { idea ->
-                            GestorIdeaCard(idea = idea, onClick = { onIdeiaClick(idea.id) })
-                        }
-                    }
                 }
             }
         }
@@ -112,95 +130,49 @@ fun IdeiasGestorNewScreen(
 }
 
 @Composable
-private fun GestorIdeaCard(idea: Idea, onClick: () -> Unit) {
-    val statusColor = ideaStatusColor(idea.status)
-    val statusLabel = ideaStatusLabel(idea.status)
+private fun GestorIdeaCard(idea: Idea, index: Int, onClick: () -> Unit) {
+    InovaCard(onClick = onClick, accent = idea.priority == "ALTA") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            MonoCounter(index = index)
+            IdeaStatusBadge(status = idea.status)
+        }
 
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    idea.title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f)
-                )
-                Surface(shape = RoundedCornerShape(20.dp), color = statusColor.copy(alpha = 0.15f)) {
-                    Text(
-                        statusLabel,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = statusColor,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(text = idea.title, style = InovaType.cardLabel, color = InovaTextPrimary)
+
+        Spacer(modifier = Modifier.height(12.dp))
+        InovaDivider()
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            InfoRow(label = "Operador", value = idea.operatorName)
+            InfoRow(label = "Área", value = idea.area)
+            InfoRow(label = "Estratégia", value = idea.strategyTitle)
+        }
+
+        val hasPriority = idea.priority != "NORMAL"
+        val analysis = idea.aiAnalysis
+        if (hasPriority || analysis != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (hasPriority) {
+                    InovaTag(
+                        text = "Prioridade: ${idea.priority}",
+                        color = if (idea.priority == "ALTA") InovaStatusError else InovaTextSecondary
                     )
                 }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Operador: ${idea.operatorName}", fontSize = 12.sp, color = TextSecondary)
-            if (idea.area.isNotBlank()) {
-                Text("Área: ${idea.area}", fontSize = 12.sp, color = TextSecondary)
-            }
-            if (idea.strategyTitle.isNotBlank()) {
-                Text("Estratégia: ${idea.strategyTitle}", fontSize = 12.sp, color = AccentBlue)
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (idea.priority != "NORMAL") {
-                    Text(
-                        "Prioridade: ${idea.priority}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (idea.priority == "ALTA") DangerRed else TextSecondary
+                if (analysis != null) {
+                    StatusBadge(
+                        text = "IA ${analysis.score}/100",
+                        color = scoreColor(analysis.score)
                     )
-                }
-                idea.aiAnalysis?.let { analysis ->
-                    Surface(shape = RoundedCornerShape(20.dp), color = scoreColor(analysis.score).copy(alpha = 0.15f)) {
-                        Text(
-                            "IA ${analysis.score}/100",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = scoreColor(analysis.score),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
                 }
             }
         }
     }
-}
-
-internal fun ideaStatusColor(status: String): Color = when (status) {
-    "EM_ANALISE" -> WarningYellow
-    "PRIORIZADA" -> AccentBlue
-    "APROVADA" -> SuccessGreen
-    "REJEITADA" -> DangerRed
-    else -> TextSecondary
-}
-
-internal fun ideaStatusLabel(status: String): String = when (status) {
-    "EM_ANALISE" -> "Em análise"
-    "PRIORIZADA" -> "Priorizada"
-    "APROVADA" -> "Aprovada"
-    "REJEITADA" -> "Rejeitada"
-    else -> status
-}
-
-internal fun scoreColor(score: Int): Color = when {
-    score >= 75 -> SuccessGreen
-    score >= 50 -> WarningYellow
-    else -> DangerRed
 }

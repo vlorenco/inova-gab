@@ -1,199 +1,115 @@
 package br.com.fiap.inovagab.ui.lideranca
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import br.com.fiap.inovagab.ui.components.AppActionCard
-import br.com.fiap.inovagab.ui.components.AppTopBar
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.data.model.DashboardSummary
+import br.com.fiap.inovagab.data.repository.DashboardRepository
+import br.com.fiap.inovagab.ui.components.InovaBottomNav
+import br.com.fiap.inovagab.ui.components.InovaErrorState
+import br.com.fiap.inovagab.ui.components.InovaHeader
+import br.com.fiap.inovagab.ui.components.InovaLoading
+import br.com.fiap.inovagab.ui.components.InovaNavItem
+import br.com.fiap.inovagab.ui.components.InovaScreen
+import br.com.fiap.inovagab.ui.components.InovaWideActionCard
 
+/**
+ * Home da liderança.
+ *
+ * A home **é** o dashboard. Antes havia uma tela separada e um card para
+ * chegar até ela, o que dava dois caminhos para o mesmo conteúdo. Estratégias
+ * e Projetos já são abas da barra inferior, então o único card que sobra é
+ * Indicadores, que abre o recorte por orientação — informação que não está
+ * em lugar nenhum.
+ */
 @Composable
 fun LiderancaHomeScreen(
     onProfileClick: () -> Unit = {},
     onStrategiesClick: () -> Unit = {},
-    onDashboardClick: () -> Unit = {},
-    onProjectsClick: () -> Unit = {}
+    onProjectsClick: () -> Unit = {},
+    onIndicatorsClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(containerColor = CardWhite, tonalElevation = 4.dp) {
-                listOf(
-                    Pair("Início", Icons.Default.Home),
-                    Pair("Estratégia", Icons.Default.Flag),
-                    Pair("Projetos", Icons.Default.AccountTree),
-                    Pair("Perfil", Icons.Default.Person)
-                ).forEachIndexed { index, (label, icon) ->
-                    NavigationBarItem(
-                        selected = selectedTab == index,
-                        onClick = {
-                            selectedTab = index
-                            when (index) {
-                                1 -> onStrategiesClick()
-                                2 -> onProjectsClick()
-                                3 -> onProfileClick()
-                            }
-                        },
-                        icon = { Icon(icon, contentDescription = label) },
-                        label = { Text(label, fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryBlue,
-                            selectedTextColor = PrimaryBlue,
-                            indicatorColor = LightBackground
-                        )
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(LightBackground)
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-        ) {
-            AppTopBar(title = "Olá, Liderança", subtitle = "Visão Estratégica")
+    val dashboardRepository = remember { DashboardRepository() }
+    var summary by remember { mutableStateOf<DashboardSummary?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Resumo geral",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ResumoGrandeCard(
-                        valor = "128",
-                        label = "Ideias cadastradas",
-                        cor = PrimaryBlue,
-                        modifier = Modifier.weight(1f)
-                    )
-                    ResumoGrandeCard(
-                        valor = "36",
-                        label = "Ideias aprovadas",
-                        cor = SuccessGreen,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ResumoGrandeCard(
-                        valor = "8",
-                        label = "Projetos ativos",
-                        cor = WarningYellow,
-                        modifier = Modifier.weight(1f)
-                    )
-                    ResumoGrandeCard(
-                        valor = "12",
-                        label = "Projetos concluídos",
-                        cor = DarkBlue,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Ações rápidas",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AppActionCard(
-                        icon = Icons.Default.Dashboard,
-                        title = "Dashboard",
-                        subtitle = "Visão consolidada",
-                        modifier = Modifier.weight(1f),
-                        onClick = onDashboardClick
-                    )
-                    AppActionCard(
-                        icon = Icons.Default.Flag,
-                        title = "Estratégias",
-                        subtitle = "Gerencie diretrizes",
-                        modifier = Modifier.weight(1f),
-                        onClick = onStrategiesClick
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AppActionCard(
-                        icon = Icons.Default.AccountTree,
-                        title = "Projetos",
-                        subtitle = "Acompanhe projetos",
-                        modifier = Modifier.weight(1f),
-                        onClick = onProjectsClick
-                    )
-                    AppActionCard(
-                        icon = Icons.Default.BarChart,
-                        title = "Indicadores",
-                        subtitle = "KPIs e métricas",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
+    LaunchedEffect(Unit) {
+        dashboardRepository.getSummary()
+            .onSuccess { summary = it }
+            .onFailure { errorMsg = it.message }
+        isLoading = false
     }
-}
 
-@Composable
-private fun ResumoGrandeCard(valor: String, label: String, cor: Color, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Text(
-                text = valor,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = cor
+    InovaScreen(
+        header = {
+            InovaHeader(
+                title = "Olá, Liderança",
+                subtitle = "Visão Estratégica"
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                color = TextSecondary
+        },
+        bottomBar = {
+            InovaBottomNav(
+                selectedIndex = selectedTab,
+                items = listOf(
+                    InovaNavItem("Início", Icons.Outlined.Home) { selectedTab = 0 },
+                    InovaNavItem("Estratégia", Icons.Outlined.Flag) {
+                        selectedTab = 1; onStrategiesClick()
+                    },
+                    InovaNavItem("Projetos", Icons.Outlined.AccountTree) {
+                        selectedTab = 2; onProjectsClick()
+                    },
+                    InovaNavItem("Perfil", Icons.Outlined.Person) {
+                        selectedTab = 3; onProfileClick()
+                    }
+                )
             )
         }
+    ) {
+        when {
+            isLoading -> Box(modifier = Modifier.fillMaxWidth().height(280.dp)) { InovaLoading() }
+
+            summary == null -> Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
+                InovaErrorState(errorMsg ?: "Não foi possível carregar os indicadores.")
+            }
+
+            else -> {
+                val data = summary!!
+
+                FinanceiroPanel(data)
+                ProjetosPanel(data)
+                FunilPanel(data)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        InovaWideActionCard(
+            icon = Icons.Outlined.BarChart,
+            title = "Indicadores",
+            subtitle = "ROI e resultados por orientação estratégica",
+            primary = true,
+            onClick = onIndicatorsClick
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }

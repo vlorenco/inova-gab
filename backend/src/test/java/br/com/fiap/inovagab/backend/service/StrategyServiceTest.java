@@ -2,6 +2,7 @@ package br.com.fiap.inovagab.backend.service;
 
 import br.com.fiap.inovagab.backend.dto.strategy.StrategyRequest;
 import br.com.fiap.inovagab.backend.dto.strategy.StrategyResponse;
+import br.com.fiap.inovagab.backend.exception.BadRequestException;
 import br.com.fiap.inovagab.backend.exception.NotFoundException;
 import br.com.fiap.inovagab.backend.model.Role;
 import br.com.fiap.inovagab.backend.model.Strategy;
@@ -156,13 +157,46 @@ class StrategyServiceTest {
     @Test
     @DisplayName("vincular ideia/projeto a uma estrategia inexistente e rejeitado")
     void validatesStrategyReference() {
-        when(strategyRepository.existsById("fantasma")).thenReturn(false);
+        when(strategyRepository.findById("fantasma")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> strategyService.validateExists("fantasma"))
+        assertThatThrownBy(() -> strategyService.validateLink("fantasma", null))
                 .isInstanceOf(NotFoundException.class);
+    }
 
-        // Sem vinculo informado nao ha o que validar.
-        strategyService.validateExists(null);
-        strategyService.validateExists("");
+    @Test
+    @DisplayName("o vinculo com a orientacao estrategica e obrigatorio")
+    void requiresStrategyLink() {
+        assertThatThrownBy(() -> strategyService.validateLink(null, null))
+                .isInstanceOf(BadRequestException.class);
+
+        assertThatThrownBy(() -> strategyService.validateLink("   ", null))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    @DisplayName("um vinculo novo so aceita orientacao vigente")
+    void refusesLinkToInactiveStrategy() {
+        Strategy inactive = new Strategy();
+        inactive.setId("est-desativada");
+        inactive.setTitle("Sustentabilidade nas unidades");
+        inactive.setActive(false);
+        when(strategyRepository.findById("est-desativada")).thenReturn(Optional.of(inactive));
+
+        assertThatThrownBy(() -> strategyService.validateLink("est-desativada", null))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("nao esta vigente");
+    }
+
+    @Test
+    @DisplayName("editar um registro antigo nao quebra se a orientacao dele foi desativada depois")
+    void keepsExistingLinkToInactiveStrategy() {
+        Strategy inactive = new Strategy();
+        inactive.setId("est-desativada");
+        inactive.setTitle("Sustentabilidade nas unidades");
+        inactive.setActive(false);
+        when(strategyRepository.findById("est-desativada")).thenReturn(Optional.of(inactive));
+
+        // Mesmo id antes e depois: o vinculo nao mudou, entao a edicao segue.
+        strategyService.validateLink("est-desativada", "est-desativada");
     }
 }

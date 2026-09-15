@@ -2,39 +2,73 @@ package br.com.fiap.inovagab.ui.login
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Work
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.MailOutline
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import br.com.fiap.inovagab.R
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import br.com.fiap.inovagab.ui.components.AppLoginTextField
-import br.com.fiap.inovagab.ui.components.AppPrimaryButton
-import br.com.fiap.inovagab.ui.components.QuickAccessCard
-import br.com.fiap.inovagab.ui.theme.*
+import br.com.fiap.inovagab.R
+import br.com.fiap.inovagab.ui.components.InovaFormField
+import br.com.fiap.inovagab.ui.components.InovaInlineMessage
+import br.com.fiap.inovagab.ui.components.InovaPrimaryButton
+import br.com.fiap.inovagab.ui.components.InovaSegmentedToggle
+import br.com.fiap.inovagab.ui.components.MonoLabel
+import br.com.fiap.inovagab.ui.components.inovaHeaderBackdrop
+import br.com.fiap.inovagab.ui.theme.InovaBackground
+import br.com.fiap.inovagab.ui.theme.InovaBlue
+import br.com.fiap.inovagab.ui.theme.InovaBlueLight
+import br.com.fiap.inovagab.ui.theme.InovaPanelWhite
+import br.com.fiap.inovagab.ui.theme.InovaSpacing
+import br.com.fiap.inovagab.ui.theme.InovaTextPrimary
+import br.com.fiap.inovagab.ui.theme.InovaTextTertiary
+import br.com.fiap.inovagab.ui.theme.InovaType
+
+/** Perfis de demonstração oferecidos pelo acesso rápido. */
+private data class DemoProfile(val label: String, val email: String)
+
+private val DEMO_PROFILES = listOf(
+    DemoProfile("Operador", "operador@app.com"),
+    DemoProfile("Gestor", "gestor@app.com"),
+    DemoProfile("Liderança", "lider@app.com")
+)
+
+private const val DEMO_PASSWORD = "123456"
 
 @Composable
 fun LoginScreen(
@@ -42,6 +76,9 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    var selectedProfile by remember { mutableStateOf(DEMO_PROFILES.first().label) }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
@@ -52,261 +89,171 @@ fun LoginScreen(
         }
     }
 
+    // Abre já com o perfil de operador preenchido — é o acesso rápido de testes.
+    LaunchedEffect(Unit) {
+        val profile = DEMO_PROFILES.first()
+        viewModel.onEmailChange(profile.email)
+        viewModel.onPasswordChange(DEMO_PASSWORD)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightBackground)
+            .background(InovaBackground)
             .verticalScroll(rememberScrollState())
+            .imePadding()
     ) {
-        // ── Header azul com degradê e marca d'água ──────────────────────────
-        LoginHeader()
+        BrandPanel()
 
-        // ── Card de login sobrepondo o header ───────────────────────────────
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .offset(y = (-32).dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardWhite),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
+        // A faixa branca por trás cria o recorte arredondado no canto superior
+        // esquerdo da área escura.
+        Box(modifier = Modifier.fillMaxWidth().background(InovaPanelWhite)) {
             Column(
-                modifier = Modifier.padding(28.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 38.dp))
+                    .background(InovaBackground)
+                    .inovaHeaderBackdrop()
+                    .padding(
+                        start = InovaSpacing.screenHorizontal,
+                        end = InovaSpacing.screenHorizontal,
+                        top = 30.dp,
+                        bottom = 28.dp
+                    )
             ) {
-                // Título do card
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(PrimaryBlue.copy(alpha = 0.08f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = PrimaryBlue,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "Faça seu login",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "Acesse sua conta corporativa",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                    }
-                }
+                // ── INOVA+ ───────────────────────────────────────────────────
+                Text(
+                    text = buildAnnotatedString {
+                        append("INOVA")
+                        withStyle(SpanStyle(color = InovaBlueLight)) { append("+") }
+                    },
+                    style = InovaType.displayTitle,
+                    color = InovaTextPrimary
+                )
 
-                HorizontalDivider(color = Color(0xFFF1F5F9))
+                Spacer(modifier = Modifier.height(22.dp))
 
-                // Campos
-                AppLoginTextField(
+                // ── Acesso rápido ────────────────────────────────────────────
+                MonoLabel(text = "Acesso rápido para testes", color = InovaTextTertiary)
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                InovaSegmentedToggle(
+                    options = DEMO_PROFILES.map { it.label },
+                    selected = selectedProfile,
+                    fillWidth = true,
+                    scrollable = false,
+                    onSelect = { label ->
+                        selectedProfile = label
+                        val profile = DEMO_PROFILES.first { it.label == label }
+                        viewModel.onEmailChange(profile.email)
+                        viewModel.onPasswordChange(DEMO_PASSWORD)
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = DEMO_PROFILES.first { it.label == selectedProfile }.email,
+                    style = InovaType.monoCredential,
+                    color = InovaBlueLight,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // ── Formulário ───────────────────────────────────────────────
+                Text(
+                    text = "Faça seu login",
+                    style = InovaType.screenTitleSmall,
+                    color = InovaTextPrimary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Acesse sua conta corporativa",
+                    style = InovaType.bodySmall,
+                    color = InovaBlueLight
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                InovaFormField(
+                    label = "E-mail",
                     value = uiState.email,
                     onValueChange = viewModel::onEmailChange,
-                    label = "E-mail",
-                    leadingIcon = Icons.Default.Email,
-                    enabled = !uiState.isLoading
+                    placeholder = "nome@aguiabranca.com.br",
+                    enabled = !uiState.isLoading,
+                    keyboardType = KeyboardType.Email,
+                    trailingIcon = Icons.Outlined.MailOutline
                 )
 
-                AppLoginTextField(
+                Spacer(modifier = Modifier.height(20.dp))
+
+                InovaFormField(
+                    label = "Senha",
                     value = uiState.password,
                     onValueChange = viewModel::onPasswordChange,
-                    label = "Senha",
-                    leadingIcon = Icons.Default.Lock,
-                    isPassword = true,
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading,
+                    isPassword = !passwordVisible,
+                    keyboardType = KeyboardType.Password,
+                    trailingIcon = if (passwordVisible) {
+                        Icons.Outlined.VisibilityOff
+                    } else {
+                        Icons.Outlined.Visibility
+                    },
+                    onTrailingIconClick = { passwordVisible = !passwordVisible }
                 )
 
-                // Mensagem de erro
                 if (uiState.errorMessage != null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(DangerRed.copy(alpha = 0.08f))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = uiState.errorMessage!!,
-                            color = DangerRed,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(18.dp))
+                    InovaInlineMessage(message = uiState.errorMessage!!, isError = true)
                 }
 
-                // Botão Entrar com loading integrado
-                AppPrimaryButton(
+                Spacer(modifier = Modifier.height(28.dp))
+
+                InovaPrimaryButton(
                     text = "Entrar",
                     onClick = viewModel::login,
-                    isLoading = uiState.isLoading,
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading,
+                    isLoading = uiState.isLoading
                 )
+
+                Spacer(modifier = Modifier.navigationBarsPadding())
             }
         }
-
-        // ── Acesso rápido para testes ────────────────────────────────────────
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .offset(y = (-16).dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    color = Color(0xFFE2E8F0)
-                )
-                Text(
-                    text = "  Acesso rápido para testes  ",
-                    fontSize = 11.sp,
-                    color = TextSecondary
-                )
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    color = Color(0xFFE2E8F0)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                QuickAccessCard(
-                    label = "Operador",
-                    description = "operador@app.com",
-                    icon = Icons.Default.Person,
-                    enabled = !uiState.isLoading,
-                    onClick = {
-                        viewModel.onEmailChange("operador@app.com")
-                        viewModel.onPasswordChange("123456")
-                        viewModel.login()
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-                QuickAccessCard(
-                    label = "Gestor",
-                    description = "gestor@app.com",
-                    icon = Icons.Default.Work,
-                    enabled = !uiState.isLoading,
-                    onClick = {
-                        viewModel.onEmailChange("gestor@app.com")
-                        viewModel.onPasswordChange("123456")
-                        viewModel.login()
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-                QuickAccessCard(
-                    label = "Liderança",
-                    description = "lider@app.com",
-                    icon = Icons.Default.BarChart,
-                    enabled = !uiState.isLoading,
-                    onClick = {
-                        viewModel.onEmailChange("lider@app.com")
-                        viewModel.onPasswordChange("123456")
-                        viewModel.login()
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
+/** Painel branco de marca: o único branco do app, com a logo em cor. */
 @Composable
-private fun LoginHeader() {
-    Box(
+private fun BrandPanel() {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(300.dp)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(DarkBlue, PrimaryBlue)
-                )
-            )
+            .background(InovaPanelWhite)
+            .statusBarsPadding()
+            .padding(horizontal = 28.dp)
+            .padding(top = 34.dp, bottom = 30.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Marca d'água — círculos abstratos no fundo
-        Box(
+        Image(
+            painter = painterResource(id = R.drawable.logo_aguia_branca),
+            contentDescription = "Grupo Águia Branca",
+            contentScale = ContentScale.Fit,
             modifier = Modifier
-                .size(220.dp)
-                .offset(x = (-60).dp, y = (-40).dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.04f))
-        )
-        Box(
-            modifier = Modifier
-                .size(160.dp)
-                .align(Alignment.BottomEnd)
-                .offset(x = 50.dp, y = 50.dp)
-                .clip(CircleShape)
-                .background(AccentBlue.copy(alpha = 0.18f))
-        )
-        Box(
-            modifier = Modifier
-                .size(90.dp)
-                .align(Alignment.CenterEnd)
-                .offset(x = 20.dp, y = (-20).dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.05f))
+                .widthIn(max = 260.dp)
+                .height(56.dp)
         )
 
-        // Conteúdo do header
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 32.dp, vertical = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // Logo do Grupo Águia Branca
-            Image(
-                painter = painterResource(id = R.drawable.logobranca),
-                contentDescription = "Logo Grupo Águia Branca",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .height(73.dp)
-                    .widthIn(max = 260.dp)
-            )
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "INOVA+",
-                color = Color.White,
-                fontSize = 42.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 3.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Plataforma de Inovação Corporativa",
-                color = Color.White.copy(alpha = 0.75f),
-                fontSize = 13.sp,
-                textAlign = TextAlign.Center
-            )
-        }
+        Text(
+            text = "80 ANOS • PLATAFORMA DE INOVAÇÃO CORPORATIVA",
+            style = InovaType.monoTiny,
+            color = InovaBlue,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

@@ -1,6 +1,8 @@
 package br.com.fiap.inovagab.data.remote.api
 
+import br.com.fiap.inovagab.data.remote.dto.CurationSummaryDto
 import br.com.fiap.inovagab.data.remote.dto.DashboardSummaryDto
+import br.com.fiap.inovagab.data.remote.dto.OperatorPerformanceDto
 import br.com.fiap.inovagab.data.remote.dto.ProjectDashboardDto
 import br.com.fiap.inovagab.data.remote.dto.StrategyDashboardDto
 import retrofit2.http.GET
@@ -10,6 +12,12 @@ interface DashboardApi {
 
     @GET("api/dashboard/summary")
     suspend fun summary(): DashboardSummaryDto
+
+    @GET("api/dashboard/my-performance")
+    suspend fun myPerformance(): OperatorPerformanceDto
+
+    @GET("api/dashboard/curation")
+    suspend fun curation(): CurationSummaryDto
 
     @GET("api/dashboard/strategies/{strategyId}")
     suspend fun byStrategy(@Path("strategyId") strategyId: String): StrategyDashboardDto

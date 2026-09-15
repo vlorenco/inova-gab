@@ -63,7 +63,7 @@ Nenhuma credencial fica no repositório. Copie `.env.example` como referência:
 | `JWT_SECRET` | **sim em produção** | chave de desenvolvimento | Assinatura HMAC do JWT — mínimo 32 caracteres |
 | `JWT_EXPIRATION_MS` | não | `86400000` (24 h) | Validade do token |
 | `GEMINI_API_KEY` | só para a IA | vazio | Chave da API do Gemini |
-| `GEMINI_MODEL` | não | `gemini-2.0-flash` | Modelo usado — configurável para não depender de um nome que pode ser depreciado |
+| `GEMINI_MODEL` | não | `gemini-3.5-flash` | Modelo usado — configurável para não depender de um nome que pode ser depreciado |
 | `GEMINI_BASE_URL` | não | `https://generativelanguage.googleapis.com` | Endpoint da API |
 | `SERVER_PORT` | não | `8080` | Porta da API |
 
@@ -115,16 +115,65 @@ java -jar target/inovagab-backend-1.0.0.jar
 Criados automaticamente no primeiro boot (o seed é **idempotente** — reiniciar não duplica nada).
 Senha de todos: `123456`.
 
-| E-mail | Senha | Perfil |
+| E-mail | Perfil | Pontos iniciais |
 |---|---|---|
-| `operador@app.com` | `123456` | OPERADOR |
-| `gestor@app.com` | `123456` | GESTOR |
-| `lider@app.com` | `123456` | LIDERANCA |
-| `ana.souza@app.com` | `123456` | OPERADOR (segundo operador, para demonstrar o ranking) |
+| `operador@app.com` | OPERADOR | 360 |
+| `gestor@app.com` | GESTOR | — |
+| `lider@app.com` | LIDERANCA | — |
+| `ana.souza@app.com` | OPERADOR | 410 |
+| `carlos.nunes@app.com` | OPERADOR | 250 |
+| `marcos.vieira@app.com` | OPERADOR | 190 |
+| `juliana.prado@app.com` | OPERADOR | 100 |
+| `beatriz.lima@app.com` | OPERADOR | 90 |
 
-O seed também cria 4 orientações estratégicas, 2 ideias e 2 projetos de exemplo —
-o suficiente para a apresentação, sem transformar o sistema em mock: tudo continua
-sendo CRUD real persistido no MongoDB.
+Os pontos iniciais não são chutados: o seed aplica as regras do `RankingService`
+(+10 criar, +50 aprovar, +100 virar projeto) sobre as próprias ideias que ele cria.
+As ideias nascem com os marcadores de pontuação já fechados, então nenhum evento
+pontua duas vezes quando você usa o app.
+
+### O que mais é criado
+
+| Coleção | Quantidade | Distribuição |
+|---|---|---|
+| Orientações estratégicas | 7 | 6 vigentes, 1 encerrada (campanha Inova 2025) |
+| Ideias | 30 | 10 aprovadas, 4 priorizadas, 14 em análise, 2 rejeitadas |
+| Projetos | 12 | 4 em andamento, 5 concluídos, 2 planejados, 1 cancelado |
+
+Onze ideias já vêm com análise de IA gravada (nota, subnotas e justificativa), para
+as telas do gestor terem conteúdo sem precisar chamar o Gemini. Seis projetos estão
+vinculados à ideia que os originou (`ideaId`); os outros seis foram "cadastrados
+direto pelo gestor" e ficam sem origem, que é um caso real do fluxo.
+
+Com essa massa o dashboard da liderança fecha em **R$ 724.000** de investimento,
+**R$ 1.685.000** de retorno, **ROI de 133%** e **R$ 375.000** de redução de custos.
+O funil afunila de verdade: 30 ideias → 14 em análise → 10 aprovadas.
+
+Nada disso é mock: tudo é CRUD real persistido no MongoDB e editável pelo app.
+
+O texto é acentuado. O arquivo é UTF-8 sem BOM e o `pom.xml` fixa
+`project.build.sourceEncoding=UTF-8` — se aparecer `LogÃ­stica` na tela, o
+problema é o encoding do terminal ou da IDE, não do seed.
+
+### Recriar a massa do zero
+
+O seed é idempotente por **chave natural**: usuário pelo e-mail, orientação e
+ideia pelo título, projeto pelo nome. Rodar de novo só acrescenta o que falta.
+
+A contrapartida é que **mudar um título cria um registro novo em vez de
+atualizar o antigo**. Foi o que aconteceu quando os textos foram acentuados:
+`"Reduzir tempo de conferencia de cargas"` e `"Reduzir tempo de conferência de
+cargas"` são chaves diferentes. Por isso, ao mexer nos títulos do seed, comece
+de um banco limpo:
+
+```bash
+docker compose down -v && docker compose up -d
+```
+
+Ou aponte para outro banco sem apagar nada:
+
+```bash
+MONGODB_URI=mongodb://localhost:27017/inovagab_v2 ./mvnw spring-boot:run
+```
 
 ---
 
@@ -228,15 +277,15 @@ garantem que repetir a operação não repita a pontuação.
 ./mvnw test
 ```
 
-61 testes cobrindo:
+64 testes cobrindo:
 
 | Arquivo | O que valida |
 |---|---|
 | `JwtServiceTest` | Geração e leitura do token · rejeição de assinatura errada e token corrompido · recusa de segredo curto |
 | `ApiSecurityTest` (`@WebMvcTest`) | Login válido e inválido · endpoint protegido sem token · token inválido · operador barrado nos endpoints de liderança · gestor barrado em estratégias e dashboard · liderança sem CRUD de projetos · só o gestor dispara a IA |
 | `IdeaServiceTest` | Dono da ideia vindo do JWT · operador bloqueado na ideia de outro (leitura, edição e exclusão) · gestor aprovando · idempotência dos pontos |
-| `StrategyServiceTest` | CRUD completo · histórico CRIADA/ATUALIZADA/DESATIVADA/EXCLUIDA · validação de `strategyId` inexistente |
-| `ProjectServiceTest` | Cálculo do ROI (positivo, negativo e investimento zero) · criação a partir de ideia aprovada · recusa de ideia não aprovada · conflito de dupla conversão |
+| `StrategyServiceTest` | CRUD completo · histórico CRIADA/ATUALIZADA/DESATIVADA/EXCLUIDA · `strategyId` inexistente · vínculo obrigatório · recusa de vínculo novo com orientação não vigente · edição preservada quando a orientação já vinculada foi desativada depois |
+| `ProjectServiceTest` | Cálculo do ROI (positivo, negativo e investimento zero) · criação a partir de ideia aprovada · vínculo validado é o herdado da ideia · recusa de ideia não aprovada · conflito de dupla conversão |
 | `DashboardServiceTest` | Consolidação do summary · ROI · portfólio vazio · indicadores por estratégia |
 | `RankingServiceTest` | Crédito de pontos · numeração das posições · gestor fora do ranking |
 | `AiAnalysisServiceTest` | Parsing válido · cerca markdown · notas fora de faixa · `recommendation` desconhecida · JSON inválido · resposta não-JSON |
@@ -268,7 +317,7 @@ backend/
     │   ├── security/            SecurityConfig · JwtService · filtro · handlers 401/403
     │   └── service/             regras de negócio
     ├── main/resources/application.yml
-    └── test/java/...            61 testes
+    └── test/java/...            64 testes
 ```
 
 Fluxo: **Controller → Service → Repository → MongoDB**.

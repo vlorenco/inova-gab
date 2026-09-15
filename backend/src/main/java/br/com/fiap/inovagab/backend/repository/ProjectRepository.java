@@ -14,5 +14,8 @@ public interface ProjectRepository extends MongoRepository<Project, String> {
 
     Optional<Project> findByIdeaId(String ideaId);
 
+    /** Usado pelo seed para nao recriar um projeto que ja esta no banco. */
+    boolean existsByNameIgnoreCase(String name);
+
     boolean existsByIdeaId(String ideaId);
 }

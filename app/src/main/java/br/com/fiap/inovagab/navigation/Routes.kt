@@ -1,6 +1,7 @@
 package br.com.fiap.inovagab.navigation
 
 object Routes {
+    const val SPLASH = "splash"
     const val LOGIN = "login"
     const val OPERADOR_HOME = "operador_home"
     const val GESTOR_HOME = "gestor_home"
@@ -20,9 +21,10 @@ object Routes {
     const val GESTOR_NOVO_PROJETO = "gestor_novo_projeto"
     const val GESTOR_NOVO_PROJETO_IDEIA = "gestor_novo_projeto/{ideaId}"
     const val GESTOR_EDITAR_PROJETO = "gestor_editar_projeto/{projectId}"
+    const val GESTOR_RELATORIOS = "gestor_relatorios"
 
     // Fluxo Liderança
     const val LIDERANCA_STRATEGIES = "lideranca_strategies"
-    const val LIDERANCA_DASHBOARD = "lideranca_dashboard"
     const val LIDERANCA_PROJECTS = "lideranca_projects"
+    const val LIDERANCA_INDICADORES = "lideranca_indicadores"
 }
